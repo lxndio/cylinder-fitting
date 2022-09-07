@@ -3,6 +3,7 @@
 //=============================================================================
 
 #include <pmp/visualization/MeshViewer.h>
+#include <utilities/PointSet.h>
 
 //=============================================================================
 
@@ -48,7 +49,11 @@ protected:
     virtual void process_imgui() override;
 
 private:
-    std::vector<pmp::Point> points_;
+    // the loaded point set
+    PointSet pointset_;
+
+    // draw the pointset?
+    bool draw_pointset_;
 };
 
 //=============================================================================

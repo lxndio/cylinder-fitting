@@ -1,10 +1,15 @@
 //=============================================================================
 
 #include "Viewer.h"
+#include "pmp/Types.h"
+#include "pmp/visualization/MeshViewer.h"
 
 #include <imgui.h>
 #include <fstream>
-#include "csv.hpp"
+#include <string>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 //=============================================================================
 
@@ -26,17 +31,13 @@
 #endif
 
 // const std::string point_dir = POINTSET_DIRECTORY;
-const std::string point_dir = "data/pointsets/"; // TODO
+const std::string point_dir = "../data/pointsets/";
 
-std::vector<std::string> pointsets = {
-    "bunny.pts",       "mario_hq.pts",   "mario_lq.pts", "mario_laser.pts",
-    "open_sphere.pts", "sphere.pts",     "plane.pts",    "myscan_hq.txt",
-    "myscan_lq.txt",   "myscan_face.txt"};
+std::vector<std::string> pointsets;
 
 //=============================================================================
 
-Viewer::Viewer(const char* title, int width,
-                                                   int height)
+Viewer::Viewer(const char* title, int width, int height)
     : MeshViewer(title, width, height)
 {
     // setup draw modes for viewer
@@ -46,63 +47,35 @@ Viewer::Viewer(const char* title, int width,
     add_draw_mode("Texture");
     set_draw_mode("Smooth Shading");
 
-    // check which pointsets exist
-    // {
-    //     std::ifstream ifs;
-    //     auto filenames = pointsets;
-    //     pointsets.clear();
-    //     for (auto filename : filenames)
-    //     {
-    //         ifs.open(std::string(POINTSET_DIRECTORY) + filename);
-    //         if (ifs)
-    //             pointsets.push_back(filename);
-    //         ifs.close();
-    //     }
-    // }
+    for (auto & entry : fs::recursive_directory_iterator(point_dir))
+    {
+        if (entry.is_regular_file())
+        {
+            pointsets.push_back(entry.path());
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
 
 bool Viewer::load_data(const char* _filename)
 {
-    std::string filename(_filename);
-
-    rapidcsv::Document doc(filename);
+    bool ok;
+    mesh_.clear();
     
-    std::vector<double> xs = doc.GetColumn<double>("x_coord");
-    std::vector<double> ys = doc.GetColumn<double>("y_coord");
-    std::vector<double> zs = doc.GetColumn<double>("z_coord");
-
-    for (double x : xs) {
-        std::cout << x << ", ";
+    ok = pointset_.read_data(_filename);
+    if (!ok)
+    {
+        std::cerr << "cannot read file " << _filename << std::endl;
+        return false; 
     }
 
-    // // load as pointset
-    // ok = pointset_.read_data(_filename);
-    // if (!ok)
-    // {
-    //     std::cerr << "cannot read file " << _filename << std::endl;
-    //     return false;
-    // }
+    // update scene center and bounds
+    BoundingBox bb = pointset_.bounds();
+    set_scene((vec3)bb.center(), 0.5 * bb.size());
 
-    // // update scene center and bounds
-    // BoundingBox bb = pointset_.bounds();
-    // set_scene((vec3)bb.center(), 0.5 * bb.size());
-
-    // if (mesh_.n_vertices() != pointset_.n_vertices())
-    //     draw_pointset_ = true;
-
-    // filename_ = filename;
-
-    // // reinit reconstructor
-    // if (reconstructor_ != nullptr)
-    // {
-    //     delete reconstructor_;
-    // }
-    // reconstructor_ = new SurfaceReconstruction(pointset_, mesh_);
-
-    // if (draw_mode_names_[draw_mode_] == "Texture")
-    //     update_curvature_ = true;
+    if (mesh_.n_vertices() != pointset_.n_vertices())
+        draw_pointset_ = true;
 
     return true;
 }
@@ -111,8 +84,10 @@ bool Viewer::load_data(const char* _filename)
 
 void Viewer::draw(const std::string& draw_mode)
 {
-    // if (draw_pointset_)
-    //     pointset_.draw(projection_matrix_, modelview_matrix_, "Points");
+    MeshViewer::draw(draw_mode);
+
+    if (draw_pointset_)
+        pointset_.draw(projection_matrix_, modelview_matrix_, "Points");
 }
 
 //-----------------------------------------------------------------------------
@@ -162,7 +137,7 @@ void Viewer::process_imgui()
                 {
                     current_mesh = "- load mesh -";
                     current_pointset = item;
-                    std::string fn = point_dir + current_pointset;
+                    std::string fn = current_pointset;
                     load_data(fn.c_str());
                 }
             }
@@ -171,8 +146,7 @@ void Viewer::process_imgui()
         ImGui::PopItemWidth();
 
         // output point statistics
-        // ImGui::BulletText("%d points", (int)pointset_.points_.size());
-        ImGui::BulletText("%d points", 0); // TODO
+        ImGui::BulletText("%d points", (int)pointset_.points_.size());
         ImGui::Unindent(10);
 
         ImGui::Spacing();

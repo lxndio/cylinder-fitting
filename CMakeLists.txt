@@ -1,3 +1,5 @@
+project(CylinderFitting)
+
 ##############################################################################
 # paths
 ##############################################################################
@@ -21,7 +23,7 @@ find_package(OpenGL REQUIRED)
 ##############################################################################
 
 # we need C++11
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Windows needs special treatment
@@ -124,12 +126,20 @@ set(PMP_SOURCE_DIR "external/pmp")
 include_directories(external)
 add_subdirectory(external/pmp)
 
+##############################################################################
+# utilities 
+##############################################################################
+
+set(UTILITIES_SOURCE_DIR "external/utilities")
+include_directories(${UTILITIES_SOURCE_DIR})
+add_subdirectory(${UTILITIES_SOURCE_DIR})
+
 
 ##############################################################################
 # csv-parser
 ##############################################################################
 
-add_subdirectory(external/csv-parser)
+include_directories(external/csv-parser)
 
 
 ##############################################################################
