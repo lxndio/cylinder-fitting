@@ -153,8 +153,17 @@ void Viewer::process_imgui()
         ImGui::Separator();
         ImGui::Spacing();
 
-        ImGui::Text("Mesh");
-        ImGui::Indent(10);
+        if (ImGui::Button("Colors"))
+        {
+            srand(static_cast<unsigned>(time(0)));
+
+            for (int i = 0; i < pointset_.vertices_size(); i++)
+            {
+                pointset_.colors_[i] = Color(0.0, 125.0, 0.0);
+            }
+
+            pointset_.update_opengl();
+        }
     }
 }
 

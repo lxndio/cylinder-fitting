@@ -88,7 +88,7 @@ bool PointSet::read_data(const char *_filename)
     else if (ext == "csv")
     {
         ok = read_csv(_filename);
-        has_colors_ = false;
+        has_colors_ = true;
     }
     // else
     // {
@@ -187,10 +187,12 @@ void PointSet::update_opengl()
 {
     auto vpoint = get_vertex_property<Point>("v:point");
     auto vnormal = get_vertex_property<Normal>("v:normal");
+    auto vcolor = get_vertex_property<Color>("v:color");
     for(auto v : vertices())
     {
         vpoint[v] = points_[v.idx()];
         vnormal[v] = normals_[v.idx()];
+        vcolor[v] = colors_[v.idx()];
     }
 
     update_opengl_buffers();
