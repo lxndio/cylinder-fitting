@@ -13,7 +13,8 @@
 #include "kDTree.h"
 #include "pmp/Types.h"
 // #include <pmp/algorithms/SurfaceNormals.h>
-#include <pmp/Timer.h>
+// #include <pmp/Timer.h>
+#include "ygor-clustering/YgorClustering.hpp"
 
 // system includes
 #include <fstream>
@@ -232,6 +233,12 @@ void PointSet::compute_vertex_colors(SurfaceMesh &mesh)
 
 //-----------------------------------------------------------------------------
 
+void PointSet::cluster()
+{
+
+}
+
+//-----------------------------------------------------------------------------
 
 bool
 PointSet::

@@ -44,6 +44,9 @@ public:
     /// compute a color per vertex of `mesh` from
     void compute_vertex_colors(SurfaceMesh &mesh);
 
+    /// cluster the point set
+    void cluster();
+
     /// Write a point set with normals to a .xyz file.
     bool write_xyz(const char* filename) const;
 
