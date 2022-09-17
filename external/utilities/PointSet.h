@@ -44,8 +44,11 @@ public:
     /// compute a color per vertex of `mesh` from
     void compute_vertex_colors(SurfaceMesh &mesh);
 
+    /// recalculate
+    void recalculate();
+
     /// cluster the point set
-    void cluster();
+    std::vector<unsigned int> cluster(unsigned int eps);
 
     /// Write a point set with normals to a .xyz file.
     bool write_xyz(const char* filename) const;

@@ -9,17 +9,21 @@
 
 // our includes
 #include "PointSet.h"
+#include <boost/geometry.hpp>
 #include "csv-parser/csv.h"
 #include "kDTree.h"
 #include "pmp/Types.h"
 // #include <pmp/algorithms/SurfaceNormals.h>
 // #include <pmp/Timer.h>
 #include "ygor-clustering/YgorClustering.hpp"
+#include "ygor-clustering/YgorClusteringDBSCAN.hpp"
+#include "ygor-clustering/YgorClusteringDatum.hpp"
 
 // system includes
 #include <fstream>
 #include <string>
 #include <clocale>
+#include <vector>
 
 using namespace pmp;
 
@@ -233,9 +237,81 @@ void PointSet::compute_vertex_colors(SurfaceMesh &mesh)
 
 //-----------------------------------------------------------------------------
 
-void PointSet::cluster()
+void PointSet::recalculate()
 {
+    clear();
+    for(size_t i = 0; i < points_.size(); i++)
+    {
+        add_vertex(points_[i]);
+    }
 
+    auto vnormal = vertex_property<Normal>("v:normal");
+    for(auto v : vertices())
+    {
+        vnormal[v] = normals_[v.idx()];
+    }
+
+    set_specular(0.15);
+    if(!has_colors_)
+    {
+        set_front_color(Color(1,0,0));
+        auto vcolor = get_vertex_property<Normal>("v:color");
+        if (vcolor) remove_vertex_property(vcolor);
+    }
+    else
+    {
+        auto vcolor = vertex_property<Color>("v:color");
+        for(auto v : vertices())
+        {
+            vcolor[v] = colors_[v.idx()];
+        }
+    }
+
+    set_point_size(3);
+
+    orig_normals_ = normals_;
+    orig_points_ = points_;
+
+    update_opengl_buffers();
+}
+
+//-----------------------------------------------------------------------------
+
+std::vector<unsigned int> PointSet::cluster(unsigned int eps)
+{
+    typedef ClusteringDatum<3, double, 1, int> CDat_t;
+
+    constexpr size_t MaxElementsInANode = 6;
+    typedef boost::geometry::index::rstar<MaxElementsInANode> RTreeParameter_t;
+    typedef boost::geometry::index::rtree<CDat_t,RTreeParameter_t> RTree_t;
+    typedef boost::geometry::model::box<CDat_t> Box_t;
+
+    RTree_t rtree;
+
+    for (int i = 0; i < points_.size(); i++)
+    {
+        Point p = points_[i];
+
+        rtree.insert(CDat_t({p[0], p[1], p[2]}, {i}));
+    }
+
+    DBSCAN<RTree_t, CDat_t>(rtree, eps);
+
+    constexpr auto RTreeSpatialQueryGetAll = [](const CDat_t &) -> bool { return true; };
+    RTree_t::const_query_iterator it;
+    it = rtree.qbegin(boost::geometry::index::satisfies(RTreeSpatialQueryGetAll));
+
+    std::vector<unsigned int> clusters(points_.size());
+
+    for ( ; it != rtree.qend(); ++it)
+    {
+        unsigned int cluster_id = it->CID.Raw;
+        int point_id = it->Attributes[0];
+
+        clusters[point_id] = cluster_id;
+    }
+
+    return clusters;
 }
 
 //-----------------------------------------------------------------------------

@@ -153,16 +153,68 @@ void Viewer::process_imgui()
         ImGui::Separator();
         ImGui::Spacing();
 
-        if (ImGui::Button("Colors"))
+        static float eps = 0.0;
+
+        ImGui::Text("DBSCAN Epsilon");
+        ImGui::SliderFloat("##DBSCAN Epsilon", &eps, 0.0, 10.0);
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Cluster"))
         {
-            srand(static_cast<unsigned>(time(0)));
+            auto clusters = pointset_.cluster(eps);
 
             for (int i = 0; i < pointset_.vertices_size(); i++)
             {
-                pointset_.colors_[i] = Color(0.0, 125.0, 0.0);
+                switch (clusters[i])
+                {
+                    case 0:
+                        pointset_.colors_[i] = Color(125.0, 0.0, 0.0);
+                        break;
+                    case 1:
+                        pointset_.colors_[i] = Color(0.0, 125.0, 0.0);
+                        break;
+                    case 2:
+                        pointset_.colors_[i] = Color(0.0, 0.0, 125.0);
+                        break;
+                    case 3:
+                        pointset_.colors_[i] = Color(125.0, 125.0, 0.0);
+                        break;
+                    case 4:
+                        pointset_.colors_[i] = Color(0.0, 125.0, 125.0);
+                        break;
+                }
             }
 
             pointset_.update_opengl();
+        }
+
+        if (ImGui::Button("Cylinder"))
+        {
+            double center_x = 0.0;
+            double center_y = 0.0;
+            double bottom_z = -200.0;
+            double radius = 50.0;
+
+            for (double z = 0.0; z < 100.0; z += 5.0)
+            {
+                for (double a = 0.0; a < 360.0; a += 10.0)
+                {
+                    Point p(
+                        center_x + radius * cos(a),
+                        center_y + radius * sin(a),
+                        bottom_z + z
+                    );
+                    Normal n = normalize(p);
+                    Color c(255.0, 0.0, 0.0);
+
+                    pointset_.points_.push_back(p);
+                    pointset_.normals_.push_back(n);
+                    pointset_.colors_.push_back(c);
+                }
+            }
+
+            pointset_.recalculate();
         }
     }
 }
