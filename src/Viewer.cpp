@@ -37,6 +37,15 @@ const std::string point_dir = "../data/pointsets/";
 
 std::vector<std::string> pointsets;
 
+const Color colors[] = {
+    Color(125.0, 0.0, 0.0),
+    Color(0.0, 125.0, 0.0),
+    Color(0.0, 0.0, 125.0),
+    Color(125.0, 125.0, 0.0),
+    Color(0.0, 125.0, 125.0),
+    Color(125.0, 0.0, 125.0)
+};
+
 //=============================================================================
 
 Viewer::Viewer(const char* title, int width, int height)
@@ -158,70 +167,64 @@ void Viewer::process_imgui()
         static float eps = 0.0;
 
         ImGui::Text("DBSCAN Epsilon");
-        ImGui::SliderFloat("##DBSCAN Epsilon", &eps, 0.0, 10.0);
+        ImGui::SliderFloat("##DBSCAN Epsilon", &eps, 1.0, 10.0);
 
         ImGui::Spacing();
 
         if (ImGui::Button("Cluster"))
         {
-            auto clusters = pointset_.cluster(eps);
+            clusters_ = pointset_.cluster(eps, max_cluster_id_);
+            std::cout << max_cluster_id_ << '\n';
 
             for (int i = 0; i < pointset_.vertices_size(); i++)
             {
-                switch (clusters[i])
-                {
-                    case 0:
-                        pointset_.colors_[i] = Color(125.0, 0.0, 0.0);
-                        break;
-                    case 1:
-                        pointset_.colors_[i] = Color(0.0, 125.0, 0.0);
-                        break;
-                    case 2:
-                        pointset_.colors_[i] = Color(0.0, 0.0, 125.0);
-                        break;
-                    case 3:
-                        pointset_.colors_[i] = Color(125.0, 125.0, 0.0);
-                        break;
-                    case 4:
-                        pointset_.colors_[i] = Color(0.0, 125.0, 125.0);
-                        break;
-                }
+                if (clusters_[i] < 6) pointset_.colors_[i] = colors[clusters_[i]];
+                else pointset_.colors_[i] = Color(0.0, 0.0, 0.0);
             }
 
             pointset_.update_opengl();
         }
         
-        if (ImGui::Button("Fit cylinder"))
+        if (ImGui::Button("Fit cylinders"))
         {
-            auto cf = CylinderFitting(pointset_.points_);
-            cf.preprocess();
-
-            double rsqr;
-            vec3 c;
-            vec3 w;
-            
-            double err = cf.fit(rsqr, c, w);
-
-            vec3 nw = normalize(w);
-
-            std::cout << "err: " << err << '\n';
-            std::cout << "c: " << c << '\n';
-            std::cout << "w: " << w << '\n';
-            std::cout << "nw: " << nw << '\n';
-            std::cout << "rsqr: " << rsqr << '\n';
-
-            // Calculate point avg
-            vec3 avg(0.0);
-
-            for (int i = 0; i < pointset_.points_.size(); i++)
+            for (int cluster = 0; cluster < 6; cluster++)
             {
-                avg += pointset_.points_[i];
+                // Collect points from cluster
+                std::vector<Point> points;
+
+                for (int i = 0; i < pointset_.points_.size(); i++)
+                {
+                    if (clusters_[i] == cluster)
+                    {
+                        points.push_back(pointset_.points_[i]);
+                    }
+                }
+
+                // Fit cylinder
+                auto cf = CylinderFitting(points);
+                cf.preprocess();
+
+                double rsqr;
+                vec3 c;
+                vec3 w;
+
+                double err = cf.fit(rsqr, c, w);
+
+                vec3 nw = normalize(w);
+
+                // Calculate point avg
+                vec3 avg(0.0);
+
+                for (int i = 0; i < points.size(); i++)
+                {
+                    avg += points[i];
+                }
+
+                avg /= points.size();
+
+                // Draw cylinder
+                draw_cylinder(avg, nw, rsqr, 100.0);
             }
-
-            avg /= pointset_.points_.size();
-
-            // Draw cylinder
-            draw_cylinder(avg, nw, rsqr, 100.0);
         }
     }
 }

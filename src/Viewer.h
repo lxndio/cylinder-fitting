@@ -43,7 +43,7 @@ public:
 
     /// draw cylinder
     void draw_cylinder(vec3 center, vec3 direction, double radius, double length);
-    
+
 protected:
     /// this function handles keyboard events
     void keyboard(int key, int code, int action, int mod) override;
@@ -57,6 +57,10 @@ private:
 
     // draw the pointset?
     bool draw_pointset_;
+
+    std::vector<unsigned int> clusters_;
+
+    unsigned int max_cluster_id_;
 };
 
 //=============================================================================

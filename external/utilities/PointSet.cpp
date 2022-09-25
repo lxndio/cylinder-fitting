@@ -277,7 +277,7 @@ void PointSet::recalculate()
 
 //-----------------------------------------------------------------------------
 
-std::vector<unsigned int> PointSet::cluster(unsigned int eps)
+std::vector<unsigned int> PointSet::cluster(unsigned int eps, unsigned int &max_cluster_id)
 {
     typedef ClusteringDatum<3, double, 1, int> CDat_t;
 
@@ -303,12 +303,17 @@ std::vector<unsigned int> PointSet::cluster(unsigned int eps)
 
     std::vector<unsigned int> clusters(points_.size());
 
+    max_cluster_id = 0;
+
     for ( ; it != rtree.qend(); ++it)
     {
         unsigned int cluster_id = it->CID.Raw;
         int point_id = it->Attributes[0];
 
         clusters[point_id] = cluster_id;
+
+        if (cluster_id > max_cluster_id)
+            max_cluster_id = cluster_id;
     }
 
     return clusters;
