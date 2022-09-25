@@ -1,8 +1,10 @@
 //=============================================================================
 
 #include "Viewer.h"
+#include "pmp/MatVec.h"
 #include "pmp/Types.h"
 #include "pmp/visualization/MeshViewer.h"
+#include "CylinderFitting.h"
 
 #include <imgui.h>
 #include <fstream>
@@ -214,6 +216,59 @@ void Viewer::process_imgui()
                 }
             }
 
+            pointset_.recalculate();
+        }
+        
+        if (ImGui::Button("Fit cylinder"))
+        {
+            auto cf = CylinderFitting(pointset_.points_);
+            cf.preprocess();
+
+            double rsqr;
+            vec3 c;
+            vec3 w;
+            
+            double err = cf.fit(rsqr, c, w);
+
+            vec3 nw = normalize(w);
+
+            std::cout << "err: " << err << '\n';
+            std::cout << "c: " << c << '\n';
+            std::cout << "w: " << w << '\n';
+            std::cout << "nw: " << nw << '\n';
+            std::cout << "rsqr: " << rsqr << '\n';
+
+            // Calculate point avg
+            vec3 avg(0.0);
+
+            for (int i = 0; i < pointset_.points_.size(); i++)
+            {
+                avg += pointset_.points_[i];
+            }
+
+            avg /= pointset_.points_.size();
+
+            // Draw cylinder
+            for (double z = -50.0; z < 50.0; z += 2.0)
+            {
+                vec3 center(avg + z * nw);
+
+                for (double a = 0.0; a < 360.0; a += 10.0)
+                {
+                    Point p(
+                        center[0] + rsqr * cos(a),
+                        center[1] + rsqr * sin(a),
+                        avg[2] + z
+                    );
+                    Normal n = normalize(p);
+                    Color c(255.0, 0.0, 0.0);
+
+                    pointset_.points_.push_back(p);
+                    pointset_.normals_.push_back(n);
+                    pointset_.colors_.push_back(c);
+                }
+            }
+            
             pointset_.recalculate();
         }
     }
