@@ -190,34 +190,6 @@ void Viewer::process_imgui()
 
             pointset_.update_opengl();
         }
-
-        if (ImGui::Button("Cylinder"))
-        {
-            double center_x = 0.0;
-            double center_y = 0.0;
-            double bottom_z = -200.0;
-            double radius = 50.0;
-
-            for (double z = 0.0; z < 100.0; z += 5.0)
-            {
-                for (double a = 0.0; a < 360.0; a += 10.0)
-                {
-                    Point p(
-                        center_x + radius * cos(a),
-                        center_y + radius * sin(a),
-                        bottom_z + z
-                    );
-                    Normal n = normalize(p);
-                    Color c(255.0, 0.0, 0.0);
-
-                    pointset_.points_.push_back(p);
-                    pointset_.normals_.push_back(n);
-                    pointset_.colors_.push_back(c);
-                }
-            }
-
-            pointset_.recalculate();
-        }
         
         if (ImGui::Button("Fit cylinder"))
         {
@@ -249,29 +221,36 @@ void Viewer::process_imgui()
             avg /= pointset_.points_.size();
 
             // Draw cylinder
-            for (double z = -50.0; z < 50.0; z += 2.0)
-            {
-                vec3 center(avg + z * nw);
-
-                for (double a = 0.0; a < 360.0; a += 10.0)
-                {
-                    Point p(
-                        center[0] + rsqr * cos(a),
-                        center[1] + rsqr * sin(a),
-                        avg[2] + z
-                    );
-                    Normal n = normalize(p);
-                    Color c(255.0, 0.0, 0.0);
-
-                    pointset_.points_.push_back(p);
-                    pointset_.normals_.push_back(n);
-                    pointset_.colors_.push_back(c);
-                }
-            }
-            
-            pointset_.recalculate();
+            draw_cylinder(avg, nw, rsqr, 100.0);
         }
     }
+}
+
+//-----------------------------------------------------------------------------
+
+void Viewer::draw_cylinder(vec3 center, vec3 direction, double radius, double length)
+{
+    for (double z = -length / 2.0; z < length / 2.0; z += 2.0)
+    {
+        vec3 z_center(center + z * direction);
+
+        for (double a = 0.0; a < 360.0; a += 10.0)
+        {
+            Point p(
+                z_center[0] + radius * cos(a),
+                z_center[1] + radius * sin(a),
+                center[2] + z
+            );
+            Normal n = normalize(p);
+            Color c(255.0, 0.0, 0.0);
+
+            pointset_.points_.push_back(p);
+            pointset_.normals_.push_back(n);
+            pointset_.colors_.push_back(c);
+        }
+    }
+
+    pointset_.recalculate();
 }
 
 //=============================================================================

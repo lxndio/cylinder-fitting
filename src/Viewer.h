@@ -41,6 +41,9 @@ public:
     /// draw the scene in different draw modes
     virtual void draw(const std::string& draw_mode) override;
 
+    /// draw cylinder
+    void draw_cylinder(vec3 center, vec3 direction, double radius, double length);
+    
 protected:
     /// this function handles keyboard events
     void keyboard(int key, int code, int action, int mod) override;
