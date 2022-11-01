@@ -5,7 +5,9 @@
 #include "pmp/Types.h"
 #include "pmp/visualization/MeshViewer.h"
 #include "CylinderFitting.h"
+#include "fmt/format.h"
 
+#include <cmath>
 #include <imgui.h>
 #include <fstream>
 #include <string>
@@ -38,13 +40,21 @@ const std::string point_dir = "../data/pointsets/";
 std::vector<std::string> pointsets;
 
 const Color colors[] = {
-    Color(125.0, 0.0, 0.0),
-    Color(0.0, 125.0, 0.0),
-    Color(0.0, 0.0, 125.0),
-    Color(125.0, 125.0, 0.0),
-    Color(0.0, 125.0, 125.0),
-    Color(125.0, 0.0, 125.0)
+    Color(125.0, 0.0, 0.0),     // red
+    Color(0.0, 125.0, 0.0),     // green
+    Color(0.0, 0.0, 125.0),     // blue
+    Color(125.0, 125.0, 0.0),   // yellow
+    Color(0.0, 125.0, 125.0),   // cyan
+    Color(125.0, 0.0, 125.0)    // purple
 };
+
+const char colors_short[] = {'r', 'g', 'b', 'y', 'c', 'p'};
+
+// Directions of cylinders
+std::vector<vec3> directions;
+
+// Pairwise angles between cylinders
+std::vector<std::vector<double>> angles(6, std::vector<double>(5));
 
 //=============================================================================
 
@@ -200,43 +210,103 @@ void Viewer::process_imgui()
         
         if (ImGui::Button("Fit cylinders") && max_cluster_id_ < 50)
         {
-            for (int cluster = 0; cluster <= max_cluster_id_; cluster++)
+            fit_cylinders();
+            calculate_angles();
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::Text("Angles:");
+        for (int i = 0; i < 6; i++)
+        {
+            char other_colors[5];
+            int pos = 0;
+
+            for (int c = 0; c < 6; c++)
             {
-                // Collect points from cluster
-                std::vector<Point> points;
-
-                for (int i = 0; i < pointset_.points_.size(); i++)
+                if (colors_short[c] != colors_short[i])
                 {
-                    if (clusters_[i] == cluster)
-                    {
-                        points.push_back(pointset_.points_[i]);
-                    }
+                    other_colors[pos++] = colors_short[c];
                 }
+            }
 
-                // Fit cylinder
-                auto cf = CylinderFitting(points);
-                cf.preprocess();
+            ImGui::Text(
+                fmt::format(
+                    "{0}-{1}: {6:.3}° {0}-{2}: {7:.3}° {0}-{3}: {8:.3}° {0}-{4}: {9:.3}° {0}-{5}: {10:.3}°",
+                    colors_short[i],
+                    other_colors[0], other_colors[1], other_colors[2], other_colors[3], other_colors[4],
+                    angles[i][0], angles[i][1], angles[i][2], angles[i][3], angles[i][4]
+                ).c_str()
+            );
+        }
+    }
+}
 
-                double rsqr;
-                vec3 c;
-                vec3 w;
+//-----------------------------------------------------------------------------
 
-                double err = cf.fit(rsqr, c, w);
+void Viewer::fit_cylinders()
+{
+    for (int cluster = 0; cluster <= max_cluster_id_; cluster++)
+    {
+        // Collect points from cluster
+        std::vector<Point> points;
 
-                vec3 nw = normalize(w);
+        for (int i = 0; i < pointset_.points_.size(); i++)
+        {
+            if (clusters_[i] == cluster)
+            {
+                points.push_back(pointset_.points_[i]);
+            }
+        }
 
-                // Calculate point avg
-                vec3 avg(0.0);
+        // Fit cylinder
+        auto cf = CylinderFitting(points);
+        cf.preprocess();
 
-                for (int i = 0; i < points.size(); i++)
-                {
-                    avg += points[i];
-                }
+        double rsqr;
+        vec3 c;
+        vec3 w;
 
-                avg /= points.size();
+        double err = cf.fit(rsqr, c, w);
 
-                // Draw cylinder
-                draw_cylinder(avg, nw, rsqr, 100.0, Color(50.0, 50.0, 50.0));
+        vec3 nw = normalize(w);
+
+        // Calculate point avg
+        vec3 avg(0.0);
+
+        for (int i = 0; i < points.size(); i++)
+        {
+            avg += points[i];
+        }
+
+        avg /= points.size();
+
+        // Store direction to calculate angles later
+        directions.push_back(nw);
+
+        // Draw cylinder
+        draw_cylinder(avg, nw, rsqr, 100.0, Color(50.0, 50.0, 50.0));
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void Viewer::calculate_angles()
+{
+    // For now it only goes up to six as no more cylinders are colored
+    for (int i = 0; i < 6; i++)
+    {
+        int angle_j = 0;
+
+        for (int j = 0; j < 6; j++)
+        {
+            if (i != j)
+            {
+                angles[i][angle_j++] = acos(
+                    dot(directions[i], directions[j]) / (norm(directions[i]) * norm(directions[j]))
+                ) * (360.0 / (2.0 * M_PI));
             }
         }
     }

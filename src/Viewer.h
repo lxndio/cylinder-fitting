@@ -41,6 +41,12 @@ public:
     /// draw the scene in different draw modes
     virtual void draw(const std::string& draw_mode) override;
 
+    /// fit cylinders
+    void fit_cylinders();
+
+    /// calculate pairwise angles between cylinders
+    void calculate_angles();
+
     /// draw cylinder
     void draw_cylinder(vec3 center, vec3 direction, double radius, double length, Color color);
 
