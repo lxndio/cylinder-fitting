@@ -42,7 +42,7 @@ public:
     virtual void draw(const std::string& draw_mode) override;
 
     /// draw cylinder
-    void draw_cylinder(vec3 center, vec3 direction, double radius, double length);
+    void draw_cylinder(vec3 center, vec3 direction, double radius, double length, Color color);
 
 protected:
     /// this function handles keyboard events

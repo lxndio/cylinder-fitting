@@ -149,6 +149,7 @@ void Viewer::process_imgui()
                     current_mesh = "- load mesh -";
                     current_pointset = item;
                     std::string fn = current_pointset;
+                    filename_ = fn;
                     load_data(fn.c_str());
                 }
             }
@@ -164,16 +165,23 @@ void Viewer::process_imgui()
         ImGui::Separator();
         ImGui::Spacing();
 
-        static float eps = 0.0;
+        static float eps = 1.0;
 
         ImGui::Text("DBSCAN Epsilon");
         ImGui::SliderFloat("##DBSCAN Epsilon", &eps, 1.0, 10.0);
 
         ImGui::Spacing();
 
-        if (ImGui::Button("Cluster"))
+        static int min_pts = 6;
+
+        ImGui::Text("DBSCAN MinPts");
+        ImGui::SliderInt("##DBSCAN MinPts", &min_pts, 1, 20);
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("DBSCAN Clustering"))
         {
-            clusters_ = pointset_.cluster(eps, max_cluster_id_);
+            clusters_ = pointset_.cluster_dbscan(eps, min_pts, max_cluster_id_);
             std::cout << max_cluster_id_ << '\n';
 
             for (int i = 0; i < pointset_.vertices_size(); i++)
@@ -184,10 +192,15 @@ void Viewer::process_imgui()
 
             pointset_.update_opengl();
         }
+
+        // if (ImGui::Button("Mean Shift Clustering"))
+        // {
+        //     clusters_ = pointset_.cluster_mean_shift(max_cluster_id_);
+        // }
         
-        if (ImGui::Button("Fit cylinders"))
+        if (ImGui::Button("Fit cylinders") && max_cluster_id_ < 50)
         {
-            for (int cluster = 0; cluster < 6; cluster++)
+            for (int cluster = 0; cluster <= max_cluster_id_; cluster++)
             {
                 // Collect points from cluster
                 std::vector<Point> points;
@@ -223,7 +236,7 @@ void Viewer::process_imgui()
                 avg /= points.size();
 
                 // Draw cylinder
-                draw_cylinder(avg, nw, rsqr, 100.0);
+                draw_cylinder(avg, nw, rsqr, 100.0, Color(50.0, 50.0, 50.0));
             }
         }
     }
@@ -231,7 +244,7 @@ void Viewer::process_imgui()
 
 //-----------------------------------------------------------------------------
 
-void Viewer::draw_cylinder(vec3 center, vec3 direction, double radius, double length)
+void Viewer::draw_cylinder(vec3 center, vec3 direction, double radius, double length, Color color)
 {
     for (double z = -length / 2.0; z < length / 2.0; z += 2.0)
     {
@@ -245,11 +258,10 @@ void Viewer::draw_cylinder(vec3 center, vec3 direction, double radius, double le
                 center[2] + z
             );
             Normal n = normalize(p);
-            Color c(255.0, 0.0, 0.0);
 
             pointset_.points_.push_back(p);
             pointset_.normals_.push_back(n);
-            pointset_.colors_.push_back(c);
+            pointset_.colors_.push_back(color);
         }
     }
 

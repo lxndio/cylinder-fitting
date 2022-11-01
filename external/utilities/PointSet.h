@@ -47,8 +47,11 @@ public:
     /// recalculate
     void recalculate();
 
-    /// cluster the point set
-    std::vector<unsigned int> cluster(unsigned int eps, unsigned int &max_cluster_id);
+    /// cluster the point set using DBSCAN clustering
+    std::vector<unsigned int> cluster_dbscan(float eps, unsigned int min_pts, unsigned int &max_cluster_id);
+
+    /// cluster the point set using mean shift clustering
+    std::vector<unsigned int> cluster_mean_shift(unsigned int &max_cluster_id);
 
     /// Write a point set with normals to a .xyz file.
     bool write_xyz(const char* filename) const;

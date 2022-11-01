@@ -12,12 +12,14 @@
 #include <boost/geometry.hpp>
 #include "csv-parser/csv.h"
 #include "kDTree.h"
+#include "msc/msc.h"
 #include "pmp/Types.h"
 // #include <pmp/algorithms/SurfaceNormals.h>
 // #include <pmp/Timer.h>
 #include "ygor-clustering/YgorClustering.hpp"
 #include "ygor-clustering/YgorClusteringDBSCAN.hpp"
 #include "ygor-clustering/YgorClusteringDatum.hpp"
+#include "msc/msc"
 
 // system includes
 #include <fstream>
@@ -277,7 +279,7 @@ void PointSet::recalculate()
 
 //-----------------------------------------------------------------------------
 
-std::vector<unsigned int> PointSet::cluster(unsigned int eps, unsigned int &max_cluster_id)
+std::vector<unsigned int> PointSet::cluster_dbscan(float eps, unsigned int min_pts, unsigned int &max_cluster_id)
 {
     typedef ClusteringDatum<3, double, 1, int> CDat_t;
 
@@ -295,7 +297,7 @@ std::vector<unsigned int> PointSet::cluster(unsigned int eps, unsigned int &max_
         rtree.insert(CDat_t({p[0], p[1], p[2]}, {i}));
     }
 
-    DBSCAN<RTree_t, CDat_t>(rtree, eps);
+    DBSCAN<RTree_t, CDat_t>(rtree, eps, min_pts);
 
     constexpr auto RTreeSpatialQueryGetAll = [](const CDat_t &) -> bool { return true; };
     RTree_t::const_query_iterator it;
@@ -318,6 +320,30 @@ std::vector<unsigned int> PointSet::cluster(unsigned int eps, unsigned int &max_
 
     return clusters;
 }
+
+//-----------------------------------------------------------------------------
+
+std::vector<unsigned int> PointSet::cluster_mean_shift(unsigned int &max_cluster_id)
+{
+    std::vector<msc::Cluster<Scalar>> clusters = msc::mean_shift_cluster<Scalar>(
+        std::begin(points_), std::end(points_), 3,
+        msc::metrics::L1(), msc::kernels::Uniform(), msc::estimators::Constant(1.0));
+
+    for (auto s : clusters[0].members)
+    {
+        std::cout << s << ',';
+    }
+
+    return {0};
+}
+
+template<> struct msc::Accessor<Scalar, pmp::Point>
+{
+    static const Scalar* data(const pmp::Point& point)
+    {
+        return point.data();
+    }
+};
 
 //-----------------------------------------------------------------------------
 
