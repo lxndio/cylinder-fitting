@@ -5,6 +5,7 @@
 #include "pmp/Types.h"
 #include "pmp/visualization/MeshViewer.h"
 #include "CylinderFitting.h"
+#include "Ransac.h"
 #include "fmt/format.h"
 
 #include <cmath>
@@ -43,7 +44,7 @@ const Color colors[] = {
     Color(125.0, 0.0, 0.0),     // red
     Color(0.0, 125.0, 0.0),     // green
     Color(0.0, 0.0, 125.0),     // blue
-    Color(125.0, 125.0, 0.0),   // yellow
+    Color(80.0, 80.0, 20.0),   // yellow
     Color(0.0, 125.0, 125.0),   // cyan
     Color(125.0, 0.0, 125.0)    // purple
 };
@@ -200,6 +201,38 @@ void Viewer::process_imgui()
                 else pointset_.colors_[i] = Color(0.0, 0.0, 0.0);
             }
 
+            pointset_.update_opengl();
+        }
+
+        if (ImGui::Button("RANSAC"))
+        {
+            // Reload model
+            // load_data(filename_.c_str());
+
+            // Apply RANSAC to clusters
+            for (int c = 0; c < max_cluster_id_; c++)
+            {
+                std::vector<vec3> points;
+
+                for (int i = 0; i < pointset_.vertices_size(); i++)
+                {
+                    if (clusters_[i] == c)
+                    {
+                        points.push_back(pointset_.points_[i]);
+                    }
+                }
+
+                auto ransac = Ransac(points, 10.0, 50);
+                std::vector<unsigned int> cs = ransac.run(5);
+
+                for (int i = 0; i < cs.size(); i++)
+                {
+                    clusters_[cs[i]] = max_cluster_id_ + 10;
+
+                    pointset_.colors_[cs[i]] = Color(255.0, 0.0, 0.0);
+                }
+            }
+            
             pointset_.update_opengl();
         }
 
