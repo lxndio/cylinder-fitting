@@ -34,7 +34,11 @@ std::vector<unsigned int> Ransac::run(int iterations)
             Point p = points[i];
             Point np;
 
-            if (p != p1 && p != p2 && dist_point_line_segment(p, p1, p2, np) < eps)
+            // if (p != p1 && p != p2 && dist_point_line_segment(p, p1, p2, np) < eps)
+            // {
+            //     cs.push_back(i);
+            // }
+            if (p != p1 && p != p2 && dist_point_line(p, p1, p2) < eps)
             {
                 cs.push_back(i);
             }
@@ -53,6 +57,13 @@ std::vector<unsigned int> Ransac::run(int iterations)
 int Ransac::calculate_iterations(double p, int s, double eps)
 {
     return log(1.0 - p) / log(1.0 - pow(1.0 - eps, s));
+}
+
+double Ransac::dist_point_line(vec3 p, vec3 l1, vec3 l2)
+{
+    vec3 d = l2 - l1;
+    
+    return norm(cross(p - l1, d)) / norm(d);
 }
 
 // Source: https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
