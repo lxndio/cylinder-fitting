@@ -4,6 +4,7 @@
 
 #include <pmp/visualization/MeshViewer.h>
 #include <utilities/PointSet.h>
+#include <vector>
 
 //=============================================================================
 
@@ -43,6 +44,9 @@ public:
 
     /// fit cylinders
     void fit_cylinders();
+
+    /// get points from a specific cluster
+    std::vector<Point> get_points_from_cluster(int cluster);
 
     /// calculate pairwise angles between cylinders
     void calculate_angles();

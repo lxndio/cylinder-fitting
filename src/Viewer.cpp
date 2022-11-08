@@ -13,6 +13,7 @@
 #include <fstream>
 #include <string>
 #include <filesystem>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -176,7 +177,7 @@ void Viewer::process_imgui()
         ImGui::Separator();
         ImGui::Spacing();
 
-        static float eps = 1.0;
+        static float eps = 5.0;
 
         ImGui::Text("DBSCAN Epsilon");
         ImGui::SliderFloat("##DBSCAN Epsilon", &eps, 1.0, 10.0);
@@ -204,32 +205,24 @@ void Viewer::process_imgui()
             pointset_.update_opengl();
         }
 
-        if (ImGui::Button("RANSAC"))
+        if (ImGui::Button("RANSAC Clusters"))
         {
-            // Reload model
-            // load_data(filename_.c_str());
-
             // Apply RANSAC to clusters
-            for (int c = 0; c < max_cluster_id_; c++)
+            for (int cluster = 0; cluster < max_cluster_id_; cluster++)
             {
-                std::vector<vec3> points;
+                std::vector<vec3> points = get_points_from_cluster(cluster);
 
-                for (int i = 0; i < pointset_.vertices_size(); i++)
-                {
-                    if (clusters_[i] == c)
-                    {
-                        points.push_back(pointset_.points_[i]);
-                    }
-                }
-
-                auto ransac = Ransac(points, 10.0, 50);
+                auto ransac = Ransac(points, 5.0, 10);
                 std::vector<unsigned int> cs = ransac.run(5);
 
-                for (int i = 0; i < cs.size(); i++)
+                for (int i = 0; i < points.size(); i++)
                 {
-                    clusters_[cs[i]] = max_cluster_id_ + 10;
-
-                    pointset_.colors_[cs[i]] = Color(255.0, 0.0, 0.0);
+                    // If point is outlier (it is not in the consensus set)
+                    if (std::find(cs.begin(), cs.end(), i) == cs.end())
+                    {
+                        clusters_[i] = max_cluster_id_ + 10;
+                        pointset_.colors_[i] = Color(255.0, 0.0, 0.0);
+                    }
                 }
             }
             
@@ -284,15 +277,7 @@ void Viewer::fit_cylinders()
     for (int cluster = 0; cluster <= max_cluster_id_; cluster++)
     {
         // Collect points from cluster
-        std::vector<Point> points;
-
-        for (int i = 0; i < pointset_.points_.size(); i++)
-        {
-            if (clusters_[i] == cluster)
-            {
-                points.push_back(pointset_.points_[i]);
-            }
-        }
+        std::vector<Point> points = get_points_from_cluster(cluster);
 
         // Fit cylinder
         auto cf = CylinderFitting(points);
@@ -322,6 +307,23 @@ void Viewer::fit_cylinders()
         // Draw cylinder
         draw_cylinder(avg, nw, rsqr, 100.0, Color(50.0, 50.0, 50.0));
     }
+}
+
+//-----------------------------------------------------------------------------
+
+std::vector<Point> Viewer::get_points_from_cluster(int cluster)
+{
+    std::vector<Point> points;
+
+    for (int i = 0; i < pointset_.points_.size(); i++)
+    {
+        if (clusters_[i] == cluster)
+        {
+            points.push_back(pointset_.points_[i]);
+        }
+    }
+
+    return points;
 }
 
 //-----------------------------------------------------------------------------

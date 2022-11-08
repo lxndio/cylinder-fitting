@@ -161,7 +161,7 @@ bool PointSet::read_data(const char *_filename)
         }
     }
 
-    set_point_size(3);
+    set_point_size(5);
 
     orig_normals_ = normals_;
     orig_points_ = points_;
@@ -269,7 +269,7 @@ void PointSet::recalculate()
         }
     }
 
-    set_point_size(3);
+    set_point_size(5);
 
     orig_normals_ = normals_;
     orig_points_ = points_;
