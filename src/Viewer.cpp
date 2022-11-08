@@ -7,6 +7,7 @@
 #include "CylinderFitting.h"
 #include "Ransac.h"
 #include "fmt/format.h"
+#include "Clusters.h"
 
 #include <cmath>
 #include <imgui.h>
@@ -40,6 +41,10 @@ namespace fs = std::filesystem;
 const std::string point_dir = "../data/pointsets/";
 
 std::vector<std::string> pointsets;
+
+PointSet Viewer::pointset_;
+
+std::vector<unsigned int> Viewer::clusters_;
 
 const Color colors[] = {
     Color(125.0, 0.0, 0.0),     // red
@@ -205,20 +210,21 @@ void Viewer::process_imgui()
             pointset_.update_opengl();
         }
 
-        if (ImGui::Button("RANSAC Clusters"))
+        if (ImGui::Button("RANSAC"))
         {
             // Apply RANSAC to clusters
-            for (int cluster = 0; cluster < max_cluster_id_; cluster++)
+            for (int cluster = 0; cluster <= max_cluster_id_; cluster++)
             {
-                std::vector<vec3> points = get_points_from_cluster(cluster);
+                std::vector<vec3> points = Clusters::get_points_from_cluster(cluster);
 
-                auto ransac = Ransac(points, 5.0, 10);
+                auto ransac = Ransac(cluster, 1.0, 20);
                 std::vector<unsigned int> cs = ransac.run(5);
+                std::cout << "Cluster: " << points.size() << ", CS: " << cs.size() << '\n';
 
-                for (int i = 0; i < points.size(); i++)
+                for (int i = 0; i < pointset_.points_.size(); i++)
                 {
                     // If point is outlier (it is not in the consensus set)
-                    if (std::find(cs.begin(), cs.end(), i) == cs.end())
+                    if (std::find(cs.begin(), cs.end(), i) != cs.end())
                     {
                         clusters_[i] = max_cluster_id_ + 10;
                         pointset_.colors_[i] = Color(255.0, 0.0, 0.0);
@@ -227,6 +233,14 @@ void Viewer::process_imgui()
             }
             
             pointset_.update_opengl();
+        }
+
+        if (ImGui::Button("Decimate 50%"))
+        {
+            for (int cluster = 0; cluster < max_cluster_id_; cluster++)
+            {
+                
+            }
         }
 
         // if (ImGui::Button("Mean Shift Clustering"))
@@ -277,7 +291,7 @@ void Viewer::fit_cylinders()
     for (int cluster = 0; cluster <= max_cluster_id_; cluster++)
     {
         // Collect points from cluster
-        std::vector<Point> points = get_points_from_cluster(cluster);
+        std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
 
         // Fit cylinder
         auto cf = CylinderFitting(points);
@@ -307,23 +321,6 @@ void Viewer::fit_cylinders()
         // Draw cylinder
         draw_cylinder(avg, nw, rsqr, 100.0, Color(50.0, 50.0, 50.0));
     }
-}
-
-//-----------------------------------------------------------------------------
-
-std::vector<Point> Viewer::get_points_from_cluster(int cluster)
-{
-    std::vector<Point> points;
-
-    for (int i = 0; i < pointset_.points_.size(); i++)
-    {
-        if (clusters_[i] == cluster)
-        {
-            points.push_back(pointset_.points_[i]);
-        }
-    }
-
-    return points;
 }
 
 //-----------------------------------------------------------------------------

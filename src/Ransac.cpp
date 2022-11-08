@@ -1,6 +1,8 @@
 #include "Ransac.h"
 #include "pmp/MatVec.h"
 #include "pmp/algorithms/DistancePointTriangle.h"
+#include "Clusters.h"
+#include "Viewer.h"
 
 #include <vector>
 #include <random>
@@ -8,9 +10,10 @@
 
 using namespace pmp;
 
-Ransac::Ransac(std::vector<vec3> points, double eps, int minPts)
+Ransac::Ransac(unsigned int cluster, double eps, int minPts)
 {
-    this->points = points;
+    this->all_points = Viewer::pointset_.points_;
+    this->cluster = cluster;
     this->eps = eps;
     this->minPts = minPts;
 }
@@ -18,8 +21,9 @@ Ransac::Ransac(std::vector<vec3> points, double eps, int minPts)
 std::vector<unsigned int> Ransac::run(int iterations)
 {
     std::vector<unsigned int> best_cs;
+    std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
 
-    for (int i; i < iterations; i++)
+    for (int i = 0; i < iterations; i++)
     {
         // Randomly choose two points
         vec3 p1 = *choose_rand(points.begin(), points.end());
@@ -29,18 +33,25 @@ std::vector<unsigned int> Ransac::run(int iterations)
         // cs does not store the points but their indices
         std::vector<unsigned int> cs;
 
-        for (int i = 0; i < points.size(); i++)
+        // Iterate over all points and check if point is in cluster
+        // later so we can get the global ID of the point and not
+        // just the ID in the cluster
+        for (int i = 0; i < all_points.size(); i++)
         {
-            Point p = points[i];
-            Point np;
-
-            // if (p != p1 && p != p2 && dist_point_line_segment(p, p1, p2, np) < eps)
-            // {
-            //     cs.push_back(i);
-            // }
-            if (p != p1 && p != p2 && dist_point_line(p, p1, p2) < eps)
+            // If point is in cluster
+            if (Viewer::clusters_[i] == cluster)
             {
-                cs.push_back(i);
+                Point p = all_points[i];
+                // Point np;
+
+                // if (p != p1 && p != p2 && dist_point_line_segment(p, p1, p2, np) < eps)
+                // {
+                //     cs.push_back(i);
+                // }
+                if (p != p1 && p != p2 && dist_point_line(p, p1, p2) < eps)
+                {
+                    cs.push_back(i);
+                }
             }
         }
 

@@ -11,7 +11,7 @@ class Ransac
 {
 public:
     /// constructor
-    Ransac(std::vector<vec3> points, double eps, int minPts);
+    Ransac(unsigned int cluster, double eps, int minPts);
 
     // run the RANSAC algorithm
     std::vector<unsigned int> run(int iterations);
@@ -24,7 +24,10 @@ public:
 
 private:
     /// the points to work with
-    std::vector<vec3> points;
+    std::vector<vec3> all_points;
+
+    /// the cluster to work with
+    unsigned int cluster;
 
     /// maximum distance of points to model
     double eps;
