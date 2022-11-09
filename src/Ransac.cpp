@@ -44,10 +44,6 @@ std::vector<unsigned int> Ransac::run(int iterations)
                 Point p = all_points[i];
                 // Point np;
 
-                // if (p != p1 && p != p2 && dist_point_line_segment(p, p1, p2, np) < eps)
-                // {
-                //     cs.push_back(i);
-                // }
                 if (p != p1 && p != p2 && dist_point_line(p, p1, p2) < eps)
                 {
                     cs.push_back(i);

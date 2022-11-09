@@ -199,7 +199,8 @@ void Viewer::process_imgui()
         if (ImGui::Button("DBSCAN Clustering"))
         {
             clusters_ = pointset_.cluster_dbscan(eps, min_pts, max_cluster_id_);
-            std::cout << max_cluster_id_ << '\n';
+            std::cout << "Max cluster ID: " << max_cluster_id_ << '\n';
+            std::cout << "Points: " << pointset_.points_.size() << ", Clusters: " << clusters_.size() << '\n';
 
             for (int i = 0; i < pointset_.vertices_size(); i++)
             {
@@ -210,6 +211,19 @@ void Viewer::process_imgui()
             pointset_.update_opengl();
         }
 
+        ImGui::Spacing();
+
+        static float ransac_eps = 2.5;
+        static int ransac_min_pts = 25;
+
+        ImGui::Text("RANSAC Epsilon");
+        ImGui::SliderFloat("##RANSAC Epsilon", &ransac_eps, 0.1, 5.0); 
+
+        ImGui::Text("RANSAC MinPts");
+        ImGui::SliderInt("##RANSAC MinPts", &ransac_min_pts, 10, 100);
+
+        ImGui::Spacing();
+
         if (ImGui::Button("RANSAC"))
         {
             // Apply RANSAC to clusters
@@ -217,17 +231,18 @@ void Viewer::process_imgui()
             {
                 std::vector<vec3> points = Clusters::get_points_from_cluster(cluster);
 
-                auto ransac = Ransac(cluster, 1.0, 20);
+                auto ransac = Ransac(cluster, ransac_eps, ransac_min_pts);
                 std::vector<unsigned int> cs = ransac.run(5);
                 std::cout << "Cluster: " << points.size() << ", CS: " << cs.size() << '\n';
 
                 for (int i = 0; i < pointset_.points_.size(); i++)
                 {
                     // If point is outlier (it is not in the consensus set)
-                    if (std::find(cs.begin(), cs.end(), i) != cs.end())
+                    if (clusters_[i] == cluster && std::find(cs.begin(), cs.end(), i) == cs.end())
                     {
+                        // Remove from any handled cluster and set color
                         clusters_[i] = max_cluster_id_ + 10;
-                        pointset_.colors_[i] = Color(255.0, 0.0, 0.0);
+                        pointset_.colors_[i] = Color(25.0, 25.0, 25.0);
                     }
                 }
             }
