@@ -45,6 +45,9 @@ public:
     /// fit cylinders
     void fit_cylinders();
 
+    /// fit cylinders using PCA
+    void fit_cylinders_pca();
+
     /// get points from a specific cluster
     std::vector<Point> get_points_from_cluster(int cluster);
 

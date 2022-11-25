@@ -12,9 +12,13 @@
 #include <cmath>
 #include <imgui.h>
 #include <fstream>
+#include <iterator>
+#include <opencv2/core.hpp>
+#include <opencv2/core/hal/interface.h>
 #include <string>
 #include <filesystem>
 #include <vector>
+#include <opencv2/opencv.hpp>
 
 namespace fs = std::filesystem;
 
@@ -130,6 +134,10 @@ void Viewer::keyboard(int key, int scancode, int action,
     {
         case GLFW_KEY_BACKSPACE: // reload model
         {
+            clusters_.clear();
+            directions.clear();
+            angles = std::vector(6, std::vector<double>(5)); 
+
             load_data(filename_.c_str());
             break;
         }
@@ -270,8 +278,16 @@ void Viewer::process_imgui()
         }
 
         ImGui::Spacing();
-        ImGui::Separator();
+
+        if (ImGui::Button("Fit w/ PCA") && max_cluster_id_ < 50)
+        {
+            fit_cylinders_pca();
+            calculate_angles();
+        }
+
         ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing(); 
 
         ImGui::Text("Angles:");
         for (int i = 0; i < 6; i++)
@@ -335,6 +351,48 @@ void Viewer::fit_cylinders()
 
         // Draw cylinder
         draw_cylinder(avg, nw, rsqr, 100.0, Color(50.0, 50.0, 50.0));
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void Viewer::fit_cylinders_pca()
+{
+    for (int cluster = 0; cluster <= max_cluster_id_; cluster++)
+    {
+        // Collect points from cluster
+        std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
+        int size = static_cast<int>(points.size());
+
+        cv::Mat data_pts = cv::Mat(size, 3, CV_64F);
+
+        for (int i = 0; i < data_pts.rows; i++)
+        {
+            data_pts.at<double>(i, 0) = points[i][0];
+            data_pts.at<double>(i, 1) = points[i][1];
+            data_pts.at<double>(i, 2) = points[i][2];
+        }
+
+        // Fit cylinder using PCA
+        cv::PCA pca(data_pts, cv::Mat(), cv::PCA::DATA_AS_ROW);
+
+        Point center = Point(
+            pca.mean.at<double>(0, 0),
+            pca.mean.at<double>(0, 1),
+            pca.mean.at<double>(0, 2)
+        );
+
+        vec3 eigenvec = Point(
+            pca.eigenvectors.at<double>(0, 0),
+            pca.eigenvectors.at<double>(0, 1),
+            pca.eigenvectors.at<double>(0, 2)
+        );
+
+        // Store direction to calculate angles later
+        directions.push_back(eigenvec);
+
+        // Draw cylinder
+        draw_cylinder(center, eigenvec, 2.0, 100.0, Color(50.0, 50.0, 50.0));
     }
 }
 
