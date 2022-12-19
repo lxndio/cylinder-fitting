@@ -17,7 +17,7 @@ public:
     Eigen::VectorXd mean() const { return pca_mean_; }
 
     /// return eigenvectors
-    Eigen::VectorXd eigenvectors() const { return pca_matrix_; }
+    Eigen::MatrixXd eigenvectors() const { return pca_matrix_; }
 
     /// dimension of the vector space
     unsigned int dimension() const { return pca_matrix_.rows(); }

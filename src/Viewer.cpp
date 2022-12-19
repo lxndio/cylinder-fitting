@@ -426,6 +426,7 @@ void Viewer::fit_cylinders_pca_2()
         Point center(center_eigen[0], center_eigen[1], center_eigen[2]);
         Point eigenvec(eigenvec_eigen[0], eigenvec_eigen[1], eigenvec_eigen[2]);
 
+
         // Store direction to calculate angles later
         directions.push_back(eigenvec);
 
@@ -463,19 +464,24 @@ void Viewer::draw_cylinder(vec3 center, vec3 direction, double radius, double le
     {
         vec3 z_center(center + z * direction);
 
-        for (double a = 0.0; a < 360.0; a += 10.0)
-        {
-            Point p(
-                z_center[0] + radius * cos(a),
-                z_center[1] + radius * sin(a),
-                center[2] + z
-            );
-            Normal n = normalize(p);
+        // for (double a = 0.0; a < 360.0; a += 10.0)
+        // {
+        //     Point p(
+        //         z_center[0] + radius * cos(a),
+        //         z_center[1] + radius * sin(a),
+        //         center[2] + z
+        //     );
+        //     Normal n = normalize(p);
 
-            pointset_.points_.push_back(p);
-            pointset_.normals_.push_back(n);
-            pointset_.colors_.push_back(color);
-        }
+        //     pointset_.points_.push_back(p);
+        //     pointset_.normals_.push_back(n);
+        //     pointset_.colors_.push_back(color);
+        // }
+
+        pointset_.points_.push_back(z_center);
+        Normal n = normalize(z_center);
+        pointset_.normals_.push_back(n);
+        pointset_.colors_.push_back(color);
     }
 
     pointset_.recalculate();

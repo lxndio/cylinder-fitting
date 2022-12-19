@@ -1,6 +1,10 @@
 #include "pca.h"
+#include "Eigen/src/Core/Matrix.h"
+#include "Eigen/src/SVD/JacobiSVD.h"
+#include <algorithm>
 #include <pmp/Timer.h>
 #include <iostream>
+#include <vector>
 
 using namespace pmp;
 
@@ -75,23 +79,17 @@ bool PCA::train(std::vector<Eigen::VectorXd>& data, const int ncomponents)
 
     Eigen::MatrixXd c = x * x.transpose();
 
-    std::cout << "===================================================" << std::endl;
-    std::cout << "data[0]: " << data[0].rows() << " x " << data[0].cols() << std::endl;
-    std::cout << "x: " << x.rows() << " x " << x.cols() << std::endl;
-    std::cout << "c: " << c.rows() << " x " << c.cols() << std::endl;
-    std::cout << "===================================================" << std::endl;
-
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(c);
 
-    pca_matrix_ = eigensolver.eigenvectors().rightCols(ncomponents);
-    eigenvalues_ = eigensolver.eigenvalues().rightCols(ncomponents);
+    std::cout << eigensolver.eigenvectors() << std::endl;
 
-    // output final dimensions for debugging
-    std::cout << "  PCA matrix is " << pca_matrix_.rows() << " x "
-              << pca_matrix_.cols() << std::endl;
-    std::cout << "  PCA mean is " << pca_mean_.rows() << " x "
-              << pca_mean_.cols() << std::endl;
-    std::cout << "  Eigenvalues are " << eigenvalues_.transpose() << std::endl;
+    auto pca_matrix = eigensolver.eigenvectors().rowwise().reverse();
+    std::cout << pca_matrix << std::endl;
+    auto eigenvalues = eigensolver.eigenvalues().reverse();
+
+    pca_matrix_ = pca_matrix.leftCols(ncomponents);
+    eigenvalues_ = eigenvalues.topRows(ncomponents);
+    std::cout << pca_matrix_ << std::endl;
 
     // how long did it take?
     timer.stop();

@@ -1,5 +1,6 @@
 #include "CylinderFitting.h"
 #include "pmp/MatVec.h"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -12,6 +13,7 @@ void CylinderFitting::preprocess()
 {
     const unsigned int n = points_.size();
 
+    // Calculate mean of samples
     avg_ = vec3(0.0);
 
     for (int i = 0; i < n; i++)
@@ -21,6 +23,7 @@ void CylinderFitting::preprocess()
 
     avg_ /= (double)n;
 
+    // Subract mean from every sample for numerical robustness (p. 31)
     for (int i = 0; i < n; i++)
     {
         points_avg_.push_back(points_[i] - avg_);
@@ -73,6 +76,7 @@ void CylinderFitting::preprocess()
         f0_(1, 2) += products[i][4];
         f0_(2, 2) += products[i][5];
 
+        // Apply outer product u x v = u * v^T
         f1_ += points_avg_[i] * transpose(delta);
         f2_ += delta * transpose(delta);
     }
@@ -87,17 +91,26 @@ void CylinderFitting::preprocess()
 
 double CylinderFitting::error(Matrix<Scalar, 6, 1> &mu, Matrix<Scalar, 3, 3> &f0, Matrix<Scalar, 3, 6> &f1, Matrix<Scalar, 6, 6> &f2, vec3 &w, vec3 &pc, double &rsqr)
 {
-    Matrix<Scalar, 3, 3> p = Matrix<Scalar, 3, 3>::identity() - w * transpose(w);
+    Matrix<Scalar, 3, 3> p = Matrix<Scalar, 3, 3>::identity() - (w * transpose(w));
     
     Matrix<Scalar, 3, 3> s;
+    // s(0, 0) = 0.0;
+    // s(0, 1) = -w[2];
+    // s(0, 2) = w[1];
+    // s(1, 0) = w[2];
+    // s(1, 1) = 0.0;
+    // s(1, 2) = -w[0];
+    // s(2, 0) = -w[1];
+    // s(2, 1) = w[0];
+    // s(2, 2) = 0.0;
     s(0, 0) = 0.0;
-    s(0, 1) = -w[2];
-    s(0, 2) = w[1];
-    s(1, 0) = w[2];
+    s(1, 0) = -w[2];
+    s(2, 0) = w[1];
+    s(0, 1) = w[2];
     s(1, 1) = 0.0;
-    s(1, 2) = -w[0];
-    s(2, 0) = -w[1];
-    s(2, 1) = w[0];
+    s(2, 1) = -w[0];
+    s(0, 2) = -w[1];
+    s(1, 2) = w[0];
     s(2, 2) = 0.0;
 
     Matrix<Scalar, 3, 3> a = p * f0 * p;
@@ -118,6 +131,7 @@ double CylinderFitting::error(Matrix<Scalar, 6, 1> &mu, Matrix<Scalar, 3, 3> &f0
     vec3 beta = q * alpha;
     
     double error = (dot(pp, f2 * pp) - 4 * dot(alpha, beta) + 4 * dot(beta, f0 * beta)) / (double)points_avg_.size();
+    pc = beta;
     rsqr = dot(pp, mu) + dot(beta, beta);
 
     return error;
@@ -136,12 +150,14 @@ double CylinderFitting::fit(double &rsqr, vec3 &c, vec3 &w)
     for (int j = 0; j <= jmax; j++)
     {
         double phi = (M_PI / 2) * j / (double)jmax;
+        phi = std::max(0.0, std::min(phi, M_PI / 2));
         double csphi = cos(phi);
         double snphi = sin(phi);
 
         for (int i = 0; i < imax; i++)
         {
             double theta = (2 * M_PI) * i / (double)imax;
+            theta = std::max(0.0, std::min(theta, 2 * M_PI));
             double cstheta = cos(theta);
             double sntheta = sin(theta);
             vec3 current_w(cstheta * snphi, sntheta * snphi, csphi);
@@ -158,6 +174,8 @@ double CylinderFitting::fit(double &rsqr, vec3 &c, vec3 &w)
             }
         }
     }
+
+    c += avg_;
 
     return min_error;
 }
