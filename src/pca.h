@@ -19,6 +19,9 @@ public:
     /// return eigenvectors
     Eigen::MatrixXd eigenvectors() const { return pca_matrix_; }
 
+    /// return eigenvalues
+    Eigen::VectorXd eigenvalues() const { return eigenvalues_; }
+
     /// dimension of the vector space
     unsigned int dimension() const { return pca_matrix_.rows(); }
 

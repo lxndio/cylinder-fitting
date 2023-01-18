@@ -36,31 +36,6 @@ bool PCA::train(std::vector<Eigen::VectorXd>& data, const int ncomponents)
         }
     }
 
-    // start timer
-    std::cout << "Compute PCA:\n" << std::flush;
-    Timer timer;
-    timer.start();
-
-    /** \todo Compute a PCA model.
-     * 
-     *  1. Compute a mean mesh from our `n` input meshes passed in variable `data` and store it in `pca_mean_` (data and mean are of type Eigen::VectorXd).
-     *  2. Construct the data matrix `X` as defined in the lecture slides.
-     *  3. Compute the PCA matrix `U` using an eigen-decomposition of `X.transpose()*X` (most efficient version in the lecture slides)
-     *  4. Print out the amount of data variance that the model covers with 1,2,3,...,n principal components.
-     *  5. Store the first `ncomponents` columns of `U` in `pca_matrix_` and the first `ncomponents` eigenvalues in `eigenvalues_`
-     *
-     *  Hints:
-     *   - Use `Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd>` as eigen-decomposition solver.
-     *     'https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html' gives an example how to
-     *     use it in section 'Computing eigenvalues and eigenvectors'.
-     *   - Eigenvalues and eigenvectors will be in reverse order. You can use `vec.reverse()`
-     *     to reverse a vector `vec` as well as `mat.rowwise().reverse()` to reverse the rows of a matrix `mat`
-     *   - There are functions like `topRows(n)` and `leftCols(n)` to get the first n rows/columns of a vector or matrix.
-     *   - The faces and skulls datasets can be represented by 10 and 6 components, respectively.
-     *     (If you use more components, you might get some warning that eigenvectors are not orthogonal.)
-     *
-     */
-
     pca_mean_ = Eigen::VectorXd::Zero(m);
 
     for (int i = 0; i < n; i++)
@@ -81,19 +56,11 @@ bool PCA::train(std::vector<Eigen::VectorXd>& data, const int ncomponents)
 
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(c);
 
-    std::cout << eigensolver.eigenvectors() << std::endl;
-
     auto pca_matrix = eigensolver.eigenvectors().rowwise().reverse();
-    std::cout << pca_matrix << std::endl;
     auto eigenvalues = eigensolver.eigenvalues().reverse();
 
     pca_matrix_ = pca_matrix.leftCols(ncomponents);
     eigenvalues_ = eigenvalues.topRows(ncomponents);
-    std::cout << pca_matrix_ << std::endl;
-
-    // how long did it take?
-    timer.stop();
-    std::cout << "done (" << timer << ")\n\n";
 
     return true;
 }

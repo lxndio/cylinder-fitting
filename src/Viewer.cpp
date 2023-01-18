@@ -3,6 +3,7 @@
 #include "Viewer.h"
 #include "Clusters.h"
 #include "CylinderFitting.h"
+#include "ClusterSweep.h"
 #include "Ransac.h"
 #include "fmt/format.h"
 #include "pca.h"
@@ -10,6 +11,8 @@
 #include "pmp/Types.h"
 #include "pmp/visualization/MeshViewer.h"
 
+#include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <fstream>
 #include <imgui.h>
@@ -17,6 +20,7 @@
 // #include <opencv2/core.hpp>
 // #include <opencv2/core/hal/interface.h>
 #include <filesystem>
+#include <limits>
 #include <string>
 #include <vector>
 // #include <opencv2/opencv.hpp>
@@ -248,11 +252,35 @@ void Viewer::process_imgui() {
       calculate_angles();
     }
 
-    ImGui::Spacing();
-
     if (ImGui::Button("Fit w/ PCA") && max_cluster_id_ < 50) {
       fit_cylinders_pca_2();
       calculate_angles();
+    }
+
+    if (ImGui::Button("Cluster Sweep") && max_cluster_id_ < 50) {
+      for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
+        // Collect points from cluster
+        std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
+        std::vector<std::vector<Point>> clustered_points = ClusterSweep::cluster(points, directions[cluster], 20);
+
+        if (clustered_points.size() >= 2) {
+          std::cout << "Cluster Sweep, cluster 1: " << clustered_points[0].size() << ", cluster 2: " << clustered_points[1].size() << std::endl;
+        
+          for (Point point : clustered_points[0]) {
+            unsigned i = std::find(pointset_.points_.begin(), pointset_.points_.end(), point) - pointset_.points_.begin();
+            pointset_.colors_[i] = Color(125.0, 0.0, 125.0);
+          }
+
+          for (Point point : clustered_points[1]) {
+            unsigned i = std::find(pointset_.points_.begin(), pointset_.points_.end(), point) - pointset_.points_.begin();
+            pointset_.colors_[i] = Color(0.0, 125.0, 0.0);
+          }
+        } else {
+          std::cout << "Cluster sweep < 2" << std::endl;
+        }
+      }
+
+      pointset_.update_opengl();
     }
 
     ImGui::Spacing();
@@ -386,6 +414,8 @@ void Viewer::fit_cylinders_pca_2() {
 
     Point center(center_eigen[0], center_eigen[1], center_eigen[2]);
     Point eigenvec(eigenvec_eigen[0], eigenvec_eigen[1], eigenvec_eigen[2]);
+
+    std::cout << "Cluster: " << cluster << ", variance: " << pca.eigenvalues().row(0) << std::endl;
 
     // Store direction to calculate angles later
     directions.push_back(eigenvec);
