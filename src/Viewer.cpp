@@ -1,9 +1,9 @@
 //=============================================================================
 
 #include "Viewer.h"
+#include "ClusterSweep.h"
 #include "Clusters.h"
 #include "CylinderFitting.h"
-#include "ClusterSweep.h"
 #include "Ransac.h"
 #include "fmt/format.h"
 #include "pca.h"
@@ -210,48 +210,13 @@ void Viewer::process_imgui() {
 
     ImGui::Spacing();
 
-    // static float ransac_eps = 2.5;
-    // static int ransac_min_pts = 25;
-
-    // ImGui::Text("RANSAC Epsilon");
-    // ImGui::SliderFloat("##RANSAC Epsilon", &ransac_eps, 0.1, 5.0);
-
-    // ImGui::Text("RANSAC MinPts");
-    // ImGui::SliderInt("##RANSAC MinPts", &ransac_min_pts, 10, 100);
-
-    // ImGui::Spacing();
-
-    // if (ImGui::Button("RANSAC")) {
-    //   // Apply RANSAC to clusters
-    //   for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
-    //     std::vector<vec3> points = Clusters::get_points_from_cluster(cluster);
-
-    //     auto ransac = Ransac(cluster, ransac_eps, ransac_min_pts);
-    //     std::vector<unsigned int> cs = ransac.run(5);
-    //     std::cout << "Cluster: " << points.size() << ", CS: " << cs.size()
-    //               << '\n';
-
-    //     for (int i = 0; i < pointset_.points_.size(); i++) {
-    //       // If point is outlier (it is not in the consensus set)
-    //       if (clusters_[i] == cluster &&
-    //           std::find(cs.begin(), cs.end(), i) == cs.end()) {
-    //         // Remove from any handled cluster and set color
-    //         clusters_[i] = max_cluster_id_ + 10;
-    //         pointset_.colors_[i] = Color(25.0, 25.0, 25.0);
-    //       }
-    //     }
-    //   }
-
-    //   pointset_.update_opengl();
-    // }
-
     // if (ImGui::Button("Fit cylinders") && max_cluster_id_ < 50) {
     //   fit_cylinders();
     //   calculate_angles();
     // }
 
     if (ImGui::Button("Fit w/ PCA") && max_cluster_id_ < 50) {
-      fit_cylinders_pca_2();
+      fit_cylinders_pca();
       calculate_angles();
     }
 
@@ -259,16 +224,23 @@ void Viewer::process_imgui() {
       for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
         // Collect points from cluster
         std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
-        std::vector<std::vector<Point>> clustered_points = ClusterSweep::cluster(points, directions[cluster], 20);
+        std::vector<std::vector<Point>> clustered_points =
+            ClusterSweep::cluster(points, directions[cluster], 20);
 
+        // Apply new clusters only if cluster sweep detected more than one
+        // cluster
         if (clustered_points.size() >= 2) {
           for (Point point : clustered_points[0]) {
-            unsigned i = std::find(pointset_.points_.begin(), pointset_.points_.end(), point) - pointset_.points_.begin();
+            unsigned i = std::find(pointset_.points_.begin(),
+                                   pointset_.points_.end(), point) -
+                         pointset_.points_.begin();
             pointset_.colors_[i] = Color(125.0, 0.0, 125.0);
           }
 
           for (Point point : clustered_points[1]) {
-            unsigned i = std::find(pointset_.points_.begin(), pointset_.points_.end(), point) - pointset_.points_.begin();
+            unsigned i = std::find(pointset_.points_.begin(),
+                                   pointset_.points_.end(), point) -
+                         pointset_.points_.begin();
             pointset_.colors_[i] = Color(0.0, 125.0, 0.0);
           }
         } else {
@@ -294,7 +266,8 @@ void Viewer::process_imgui() {
         }
       }
 
-      ImGui::Text("%s", fmt::format("{0}-{1}: {6:.3}° {0}-{2}: {7:.3}° {0}-{3}: "
+      ImGui::Text("%s",
+                  fmt::format("{0}-{1}: {6:.3}° {0}-{2}: {7:.3}° {0}-{3}: "
                               "{8:.3}° {0}-{4}: {9:.3}° {0}-{5}: {10:.3}°",
                               colors_short[i], other_colors[0], other_colors[1],
                               other_colors[2], other_colors[3], other_colors[4],
@@ -337,13 +310,13 @@ void Viewer::fit_cylinders() {
     directions.push_back(nw);
 
     // Draw cylinder
-    draw_cylinder(avg, nw, rsqr, 100.0, Color(50.0, 50.0, 50.0));
+    draw_line(avg, nw, rsqr, 100.0, Color(50.0, 50.0, 50.0));
   }
 }
 
 //-----------------------------------------------------------------------------
 
-void Viewer::fit_cylinders_pca_2() {
+void Viewer::fit_cylinders_pca() {
   for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
     // Collect points from cluster
     std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
@@ -367,13 +340,14 @@ void Viewer::fit_cylinders_pca_2() {
     Point center(center_eigen[0], center_eigen[1], center_eigen[2]);
     Point eigenvec(eigenvec_eigen[0], eigenvec_eigen[1], eigenvec_eigen[2]);
 
-    std::cout << "Cluster: " << cluster << ", variance: " << pca.eigenvalues().row(0) << std::endl;
+    std::cout << "Cluster: " << cluster
+              << ", variance: " << pca.eigenvalues().row(0) << std::endl;
 
     // Store direction to calculate angles later
     directions.push_back(eigenvec);
 
     // Draw cylinder
-    draw_cylinder(center, eigenvec, 2.0, 100.0, Color(50.0, 50.0, 50.0));
+    draw_line(center, eigenvec, 2.0, 100.0, Color(50.0, 50.0, 50.0));
   }
 }
 
@@ -397,24 +371,10 @@ void Viewer::calculate_angles() {
 
 //-----------------------------------------------------------------------------
 
-void Viewer::draw_cylinder(vec3 center, vec3 direction, double radius,
-                           double length, Color color) {
+void Viewer::draw_line(vec3 center, vec3 direction, double radius,
+                       double length, Color color) {
   for (double z = -length / 2.0; z < length / 2.0; z += 2.0) {
     vec3 z_center(center + z * direction);
-
-    // for (double a = 0.0; a < 360.0; a += 10.0)
-    // {
-    //     Point p(
-    //         z_center[0] + radius * cos(a),
-    //         z_center[1] + radius * sin(a),
-    //         center[2] + z
-    //     );
-    //     Normal n = normalize(p);
-
-    //     pointset_.points_.push_back(p);
-    //     pointset_.normals_.push_back(n);
-    //     pointset_.colors_.push_back(color);
-    // }
 
     pointset_.points_.push_back(z_center);
     Normal n = normalize(z_center);
