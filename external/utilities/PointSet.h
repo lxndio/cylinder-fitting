@@ -88,6 +88,9 @@ public:
     std::vector<pmp::Normal> normals_;
     std::vector<pmp::Color>  colors_;
 
+    /// Determines if corresponding point is from data or only in the PointSet
+    /// to be drawn for visualization
+    std::vector<bool> data_;
 
     std::vector<pmp::Point>  orig_points_;
     std::vector<pmp::Normal> orig_normals_;

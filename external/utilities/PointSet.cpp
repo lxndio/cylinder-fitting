@@ -624,6 +624,7 @@ read_csv(const char* _filename)
         points_.push_back(p);
         normals_.push_back(n);
         colors_.push_back(c);
+        data_.push_back(true);
     }
 
     return true;

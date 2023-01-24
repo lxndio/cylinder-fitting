@@ -13,7 +13,7 @@ std::vector<Point> Clusters::get_points_from_cluster(unsigned int cluster)
 
     for (int i = 0; i < Viewer::pointset_.points_.size(); i++)
     {
-        if (Viewer::clusters_[i] == cluster)
+        if (Viewer::clusters_[i] == cluster && Viewer::pointset_.data_[i])
         {
             res.push_back(Viewer::pointset_.points_[i]);
         }

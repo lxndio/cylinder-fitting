@@ -50,9 +50,7 @@ namespace fs = std::filesystem;
 const std::string point_dir = "../data/pointsets/";
 
 std::vector<std::string> pointsets;
-
 PointSet Viewer::pointset_;
-
 std::vector<unsigned int> Viewer::clusters_;
 
 const Color colors[] = {
@@ -212,45 +210,45 @@ void Viewer::process_imgui() {
 
     ImGui::Spacing();
 
-    static float ransac_eps = 2.5;
-    static int ransac_min_pts = 25;
+    // static float ransac_eps = 2.5;
+    // static int ransac_min_pts = 25;
 
-    ImGui::Text("RANSAC Epsilon");
-    ImGui::SliderFloat("##RANSAC Epsilon", &ransac_eps, 0.1, 5.0);
+    // ImGui::Text("RANSAC Epsilon");
+    // ImGui::SliderFloat("##RANSAC Epsilon", &ransac_eps, 0.1, 5.0);
 
-    ImGui::Text("RANSAC MinPts");
-    ImGui::SliderInt("##RANSAC MinPts", &ransac_min_pts, 10, 100);
+    // ImGui::Text("RANSAC MinPts");
+    // ImGui::SliderInt("##RANSAC MinPts", &ransac_min_pts, 10, 100);
 
-    ImGui::Spacing();
+    // ImGui::Spacing();
 
-    if (ImGui::Button("RANSAC")) {
-      // Apply RANSAC to clusters
-      for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
-        std::vector<vec3> points = Clusters::get_points_from_cluster(cluster);
+    // if (ImGui::Button("RANSAC")) {
+    //   // Apply RANSAC to clusters
+    //   for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
+    //     std::vector<vec3> points = Clusters::get_points_from_cluster(cluster);
 
-        auto ransac = Ransac(cluster, ransac_eps, ransac_min_pts);
-        std::vector<unsigned int> cs = ransac.run(5);
-        std::cout << "Cluster: " << points.size() << ", CS: " << cs.size()
-                  << '\n';
+    //     auto ransac = Ransac(cluster, ransac_eps, ransac_min_pts);
+    //     std::vector<unsigned int> cs = ransac.run(5);
+    //     std::cout << "Cluster: " << points.size() << ", CS: " << cs.size()
+    //               << '\n';
 
-        for (int i = 0; i < pointset_.points_.size(); i++) {
-          // If point is outlier (it is not in the consensus set)
-          if (clusters_[i] == cluster &&
-              std::find(cs.begin(), cs.end(), i) == cs.end()) {
-            // Remove from any handled cluster and set color
-            clusters_[i] = max_cluster_id_ + 10;
-            pointset_.colors_[i] = Color(25.0, 25.0, 25.0);
-          }
-        }
-      }
+    //     for (int i = 0; i < pointset_.points_.size(); i++) {
+    //       // If point is outlier (it is not in the consensus set)
+    //       if (clusters_[i] == cluster &&
+    //           std::find(cs.begin(), cs.end(), i) == cs.end()) {
+    //         // Remove from any handled cluster and set color
+    //         clusters_[i] = max_cluster_id_ + 10;
+    //         pointset_.colors_[i] = Color(25.0, 25.0, 25.0);
+    //       }
+    //     }
+    //   }
 
-      pointset_.update_opengl();
-    }
+    //   pointset_.update_opengl();
+    // }
 
-    if (ImGui::Button("Fit cylinders") && max_cluster_id_ < 50) {
-      fit_cylinders();
-      calculate_angles();
-    }
+    // if (ImGui::Button("Fit cylinders") && max_cluster_id_ < 50) {
+    //   fit_cylinders();
+    //   calculate_angles();
+    // }
 
     if (ImGui::Button("Fit w/ PCA") && max_cluster_id_ < 50) {
       fit_cylinders_pca_2();
@@ -259,14 +257,11 @@ void Viewer::process_imgui() {
 
     if (ImGui::Button("Cluster Sweep") && max_cluster_id_ < 50) {
       for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
-        std::cout << "=== Cluster: " << cluster << std::endl;
         // Collect points from cluster
         std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
         std::vector<std::vector<Point>> clustered_points = ClusterSweep::cluster(points, directions[cluster], 20);
 
         if (clustered_points.size() >= 2) {
-          std::cout << "= Cluster Sweep, cluster 1: " << clustered_points[0].size() << ", cluster 2: " << clustered_points[1].size() << std::endl;
-        
           for (Point point : clustered_points[0]) {
             unsigned i = std::find(pointset_.points_.begin(), pointset_.points_.end(), point) - pointset_.points_.begin();
             pointset_.colors_[i] = Color(125.0, 0.0, 125.0);
@@ -348,50 +343,6 @@ void Viewer::fit_cylinders() {
 
 //-----------------------------------------------------------------------------
 
-// void Viewer::fit_cylinders_pca()
-// {
-//     for (int cluster = 0; cluster <= max_cluster_id_; cluster++)
-//     {
-//         // Collect points from cluster
-//         std::vector<Point> points =
-//         Clusters::get_points_from_cluster(cluster); int size =
-//         static_cast<int>(points.size());
-
-//         // Convert data types
-//         cv::Mat data_pts = cv::Mat(size, 3, CV_64F);
-
-//         for (int i = 0; i < data_pts.rows; i++)
-//         {
-//             data_pts.at<double>(i, 0) = points[i][0];
-//             data_pts.at<double>(i, 1) = points[i][1];
-//             data_pts.at<double>(i, 2) = points[i][2];
-//         }
-
-//         // Fit cylinder using PCA
-//         cv::PCA pca(data_pts, cv::Mat(), cv::PCA::DATA_AS_ROW);
-
-//         Point center = Point(
-//             pca.mean.at<double>(0, 0),
-//             pca.mean.at<double>(0, 1),
-//             pca.mean.at<double>(0, 2)
-//         );
-
-//         vec3 eigenvec = Point(
-//             pca.eigenvectors.at<double>(0, 0),
-//             pca.eigenvectors.at<double>(0, 1),
-//             pca.eigenvectors.at<double>(0, 2)
-//         );
-
-//         // Store direction to calculate angles later
-//         directions.push_back(eigenvec);
-
-//         // Draw cylinder
-//         draw_cylinder(center, eigenvec, 2.0, 100.0, Color(50.0, 50.0, 50.0));
-//     }
-// }
-
-//-----------------------------------------------------------------------------
-
 void Viewer::fit_cylinders_pca_2() {
   for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
     // Collect points from cluster
@@ -469,6 +420,7 @@ void Viewer::draw_cylinder(vec3 center, vec3 direction, double radius,
     Normal n = normalize(z_center);
     pointset_.normals_.push_back(n);
     pointset_.colors_.push_back(color);
+    pointset_.data_.push_back(false);
   }
 
   pointset_.recalculate();
