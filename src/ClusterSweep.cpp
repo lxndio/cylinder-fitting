@@ -29,16 +29,17 @@ std::vector<std::vector<Point>> cluster(std::vector<Point> &data,
   // Calculate step height for sweep
   double top = point_heights.back().second;
   double bottom = point_heights.front().second;
-  double step_height = (top - bottom) / (double)precision;
+  double step_height = fabs(top - bottom) / (double)precision;
 
-  // Sweep
+  // Sweep with 0.75 * step_height so that some points are always included
+  // in two steps for easier side registration
   for (double height = top; height >= bottom; height -= 0.75 * step_height) {
     std::vector<Point> points =
         get_points_in_height_range(point_heights, height, height - step_height);
 
     int max_cluster_id;
     std::vector<unsigned> clusters =
-        cluster_dbscan(points, 5.0, 6, max_cluster_id);
+        cluster_dbscan(points, 2.0, 6, max_cluster_id);
     std::cout << "clusters found: " << max_cluster_id << std::endl;
 
     for (int cluster = 0; cluster <= max_cluster_id; cluster++) {
@@ -85,12 +86,14 @@ bool point_height_pair_cmp(std::pair<Point, double> a,
 
 std::vector<Point>
 get_points_in_height_range(std::vector<std::pair<Point, double>> &point_heights,
-                           double from, double to) {
+                           double a, double b) {
   std::vector<Point> res;
+  double from = std::min(a, b);
+  double to = std::max(a, b);
 
   // TODO do this more cleverly as point_heights is already sorted
   for (std::pair<Point, double> p : point_heights) {
-    if (p.second <= from && p.second > to) {
+    if (p.second >= from && p.second < to) {
       res.push_back(p.first);
     }
   }

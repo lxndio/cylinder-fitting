@@ -259,12 +259,13 @@ void Viewer::process_imgui() {
 
     if (ImGui::Button("Cluster Sweep") && max_cluster_id_ < 50) {
       for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
+        std::cout << "=== Cluster: " << cluster << std::endl;
         // Collect points from cluster
         std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
         std::vector<std::vector<Point>> clustered_points = ClusterSweep::cluster(points, directions[cluster], 20);
 
         if (clustered_points.size() >= 2) {
-          std::cout << "Cluster Sweep, cluster 1: " << clustered_points[0].size() << ", cluster 2: " << clustered_points[1].size() << std::endl;
+          std::cout << "= Cluster Sweep, cluster 1: " << clustered_points[0].size() << ", cluster 2: " << clustered_points[1].size() << std::endl;
         
           for (Point point : clustered_points[0]) {
             unsigned i = std::find(pointset_.points_.begin(), pointset_.points_.end(), point) - pointset_.points_.begin();
