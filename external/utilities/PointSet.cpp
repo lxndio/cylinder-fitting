@@ -631,4 +631,19 @@ read_csv(const char* _filename)
 }
 
 
+//-----------------------------------------------------------------------------
+
+
+void PointSet::only_data_points() {
+    for (int i = 0; i < this->points_.size(); i++) {
+        if (!this->data_[i]) {
+            this->points_.erase(this->points_.begin() + i);
+            this->normals_.erase(this->normals_.begin() + i);
+            this->colors_.erase(this->colors_.begin() + i);
+            this->data_.erase(this->data_.begin() + i);
+            i--;
+        }
+    }
+}
+
 //=============================================================================

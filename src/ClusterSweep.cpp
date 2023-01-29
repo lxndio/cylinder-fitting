@@ -40,7 +40,7 @@ std::vector<std::vector<Point>> cluster(std::vector<Point> &data,
     int max_cluster_id;
     std::vector<unsigned> clusters =
         cluster_dbscan(points, 2.0, 6, max_cluster_id);
-    std::cout << "clusters found: " << max_cluster_id << std::endl;
+    // std::cout << "clusters found: " << max_cluster_id << std::endl;
 
     for (int cluster = 0; cluster <= max_cluster_id; cluster++) {
       // Collect points from cluster
@@ -48,8 +48,10 @@ std::vector<std::vector<Point>> cluster(std::vector<Point> &data,
           get_points_from_cluster(points, clusters, cluster);
       int c = -1;
 
-      std::cout << "points in cluster " << cluster << ": "
-                << cluster_points.size() << std::endl;
+      // std::cout << "points in cluster " << cluster << ": "
+      //           << cluster_points.size() << std::endl;
+
+      if (cluster_points.empty()) continue;
 
       // Check if points overlap with an already existing cluster
       for (Point point : cluster_points) {

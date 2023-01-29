@@ -54,15 +54,16 @@ PointSet Viewer::pointset_;
 std::vector<unsigned int> Viewer::clusters_;
 
 const Color colors[] = {
-    Color(125.0, 0.0, 0.0),   // red
-    Color(0.0, 125.0, 0.0),   // green
-    Color(0.0, 0.0, 125.0),   // blue
-    Color(80.0, 80.0, 20.0),  // yellow
-    Color(0.0, 125.0, 125.0), // cyan
-    Color(125.0, 0.0, 125.0)  // purple
+    Color(255.0, 0.0, 0.0),    // red
+    Color(255.0, 69.0, 0.0),  // orange
+    Color(148.0, 0.0, 211.0),  // violet
+    Color(0.0, 255.0, 0.0),    // green
+    Color(0.0, 139.0, 139.0),  // cyan
+    Color(0.0, 0.0, 255.0),    // blue
+    Color(139.0, 69.0, 19.0),  // brown
 };
 
-const char colors_short[] = {'r', 'g', 'b', 'y', 'c', 'p'};
+const char colors_short[] = {'r', 'o', 'v', 'g', 'c', 'b', 'n'};
 
 // Directions of cylinders
 std::vector<vec3> directions;
@@ -199,10 +200,7 @@ void Viewer::process_imgui() {
                 << ", Clusters: " << clusters_.size() << '\n';
 
       for (int i = 0; i < pointset_.vertices_size(); i++) {
-        if (clusters_[i] < 6)
-          pointset_.colors_[i] = colors[clusters_[i]];
-        else
-          pointset_.colors_[i] = Color(0.0, 0.0, 0.0);
+        pointset_.colors_[i] = colors[clusters_[i] % colors->size()];
       }
 
       pointset_.update_opengl();
@@ -216,13 +214,18 @@ void Viewer::process_imgui() {
     // }
 
     if (ImGui::Button("Fit w/ PCA") && max_cluster_id_ < 50) {
+      this->pointset_.only_data_points();
       fit_cylinders_pca();
       calculate_angles();
     }
 
     if (ImGui::Button("Cluster Sweep") && max_cluster_id_ < 50) {
-      for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
-        // Collect points from cluster
+      this->pointset_.only_data_points();
+
+      unsigned int old_max_cluster_id = max_cluster_id_;
+
+      for (int cluster = 0; cluster <= old_max_cluster_id; cluster++) {
+        std::cout << "Running cluster sweep for cluster " << cluster << std::endl;
         std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
         std::vector<std::vector<Point>> clustered_points =
             ClusterSweep::cluster(points, directions[cluster], 20);
@@ -230,21 +233,33 @@ void Viewer::process_imgui() {
         // Apply new clusters only if cluster sweep detected more than one
         // cluster
         if (clustered_points.size() >= 2) {
-          for (Point point : clustered_points[0]) {
-            unsigned i = std::find(pointset_.points_.begin(),
-                                   pointset_.points_.end(), point) -
-                         pointset_.points_.begin();
-            pointset_.colors_[i] = Color(125.0, 0.0, 125.0);
+          // First detected cluster will take the place of the original
+          // cluster of the points on which cluster sweep was run
+          for (int i = 0; i < this->clusters_.size(); i++) {
+            // TODO can setting points to 0 cause issues if there
+            // are points that aren't clustered again by cluster sweep
+            // and therefore remain in cluster 0 after this?
+            if (this->clusters_[i] == cluster) this->clusters_[i] = 0;
           }
 
-          for (Point point : clustered_points[1]) {
-            unsigned i = std::find(pointset_.points_.begin(),
-                                   pointset_.points_.end(), point) -
-                         pointset_.points_.begin();
-            pointset_.colors_[i] = Color(0.0, 125.0, 0.0);
+          for (int c = 0; c < clustered_points.size(); c++) {
+            int new_cluster_id;
+
+            if (c == 0) {
+              new_cluster_id = cluster;
+            } else {
+              new_cluster_id = ++this->max_cluster_id_;
+            }
+
+            for (Point point : clustered_points[c]) {
+              unsigned i = std::find(pointset_.points_.begin(),
+                                     pointset_.points_.end(), point) -
+                                     pointset_.points_.begin();
+              
+              this->clusters_[i] = new_cluster_id;
+              this->pointset_.colors_[i] = colors[new_cluster_id % colors->size()];
+            }
           }
-        } else {
-          std::cout << "Cluster sweep < 2" << std::endl;
         }
       }
 

@@ -62,6 +62,7 @@ public:
     /// Write a point set with normals and colors to a binary .pts file.
     bool write_pts(const char* filename) const;
 
+    void only_data_points();
 private:
 
     /// Read a point set with normals from a .xyz file.
