@@ -2,6 +2,7 @@
 
 #include "Viewer.h"
 #include "ClusterSweep.h"
+#include "Clustering.h"
 #include "Clusters.h"
 #include "CylinderFitting.h"
 #include "Ransac.h"
@@ -193,13 +194,37 @@ void Viewer::process_imgui() {
 
     ImGui::Spacing();
 
-    if (ImGui::Button("DBSCAN Clustering")) {
-      clusters_ = pointset_.cluster_dbscan(eps, min_pts, max_cluster_id_);
-      std::cout << "Max cluster ID: " << max_cluster_id_ << '\n';
-      std::cout << "Points: " << pointset_.points_.size()
-                << ", Clusters: " << clusters_.size() << '\n';
+    // if (ImGui::Button("DBSCAN Clustering")) {
+    //   clusters_ = pointset_.cluster_dbscan(eps, min_pts, max_cluster_id_);
+    //   std::cout << "Max cluster ID: " << max_cluster_id_ << '\n';
+    //   std::cout << "Points: " << pointset_.points_.size()
+    //             << ", Clusters: " << clusters_.size() << '\n';
 
-      for (int i = 0; i < pointset_.vertices_size(); i++) {
+    //   for (int i = 0; i < pointset_.vertices_size(); i++) {
+    //     pointset_.colors_[i] = colors[clusters_[i] % colors->size()];
+    //   }
+
+    //   pointset_.update_opengl();
+    // }
+
+    if (ImGui::Button("DBSCAN Clustering")) {
+      Clustering clustering = Clustering();
+
+      std::vector<std::optional<unsigned>> clusters = clustering
+        .set_points(this->pointset_.points_)
+        ->cluster_dbscan(min_pts, eps)
+        ->get_clusters();
+
+      this->clusters_ = std::vector<unsigned>(this->pointset_.points_.size());
+
+      for (unsigned c = 0; c < clusters.size(); c++) {
+        // TODO fix that clusters_ also accepts optionals
+        this->clusters_[c] = clusters[c].value_or(999);
+      }
+
+      this->max_cluster_id_ = clusters.size() - 1;
+      
+      for (int i = 0; i < pointset_.points_.size(); i++) {
         pointset_.colors_[i] = colors[clusters_[i] % colors->size()];
       }
 
