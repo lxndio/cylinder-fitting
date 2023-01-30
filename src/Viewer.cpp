@@ -13,6 +13,7 @@
 #include "pmp/visualization/MeshViewer.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cfloat>
 #include <cmath>
 #include <fstream>
@@ -207,6 +208,8 @@ void Viewer::process_imgui() {
     // }
 
     if (ImGui::Button("DBSCAN Clustering")) {
+      this->pointset_.only_data_points();
+      
       Clustering clustering = Clustering();
 
       clusters_ = clustering
@@ -218,7 +221,7 @@ void Viewer::process_imgui() {
       
       for (int i = 0; i < pointset_.points_.size(); i++) {
         if (this->clusters_[i].has_value()) {
-          this->pointset_.colors_[i] = colors[this->clusters_[i].value() % colors->size()];
+          this->pointset_.colors_[i] = colors[this->clusters_[i].value() % 7];
         } else {
           this->pointset_.colors_[i] = Color(0.0, 0.0, 0.0);
         }
@@ -236,6 +239,7 @@ void Viewer::process_imgui() {
 
     if (ImGui::Button("Fit w/ PCA") && max_cluster_id_ < 50) {
       this->pointset_.only_data_points();
+
       fit_cylinders_pca();
       calculate_angles();
     }
@@ -357,6 +361,8 @@ void Viewer::fit_cylinders_pca() {
     // Collect points from cluster
     std::vector<Point> points = Clusters::get_points_from_cluster(this->clusters_, cluster);
     int size = static_cast<int>(points.size());
+
+    if (points.size() == 0) continue;
 
     // Convert Point to Eigen::Vector3d
     std::vector<Eigen::VectorXd> points_eigen;

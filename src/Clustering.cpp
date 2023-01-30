@@ -39,7 +39,7 @@ std::vector<ClusterPoint> Clustering::range_query(ClusterPoint q, float eps) {
 }
 
 Clustering* Clustering::cluster_dbscan(unsigned min_pts, float eps) {
-    unsigned cluster_cnt = 0;
+    int cluster_cnt = -1;
     std::map<ClusterPoint, DBSCANLabel, ClusterPoint::Compare> labels;
 
     for (ClusterPoint p : this->points) {
@@ -101,7 +101,7 @@ Clustering* Clustering::cluster_dbscan(unsigned min_pts, float eps) {
         }
     }
 
-    this->max_cluster_id = cluster_cnt - 1;
+    this->max_cluster_id = cluster_cnt;
 
     return this;
 }
