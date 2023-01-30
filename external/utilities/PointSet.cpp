@@ -610,6 +610,7 @@ read_csv(const char* _filename)
     points_.clear();
     normals_.clear();
     colors_.clear();
+    data_.clear();
 
     for (csv::CSVRow& row : reader)
     {

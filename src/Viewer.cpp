@@ -147,7 +147,7 @@ void Viewer::keyboard(int key, int scancode, int action, int mods) {
 //-----------------------------------------------------------------------------
 
 void Viewer::process_imgui() {
-  if (ImGui::CollapsingHeader("Load pointset or mesh",
+  if (ImGui::CollapsingHeader("Cylinder Fitting",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     static std::string current_pointset = "- load pointset -";
     static std::string current_mesh = "- load mesh -";
