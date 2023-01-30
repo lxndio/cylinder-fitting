@@ -3,6 +3,7 @@
 #include "pmp/MatVec.h"
 #include "pmp/Types.h"
 
+#include <functional>
 #include <optional>
 #include <vector>
 
@@ -29,16 +30,28 @@ public:
         return this->x == p.x && this->y == p.y && this->z == p.z;
     }
 
-    bool operator<(const ClusterPoint& p) const {
-        return this->x < p.x;
-    }
+    struct Compare {
+        bool operator()(const ClusterPoint& lhs, const ClusterPoint& rhs) const {
+            if (lhs.x != rhs.x) return lhs.x < rhs.x;
+            if (lhs.y != rhs.y) return lhs.y < rhs.y;
+            return lhs.z < rhs.z;
+        }
+    };
+
+    struct HashFunction {
+        // https://ianyepan.github.io/posts/cpp-custom-hash/
+        size_t operator()(const ClusterPoint& p) const {
+            return std::hash<float>{}(p.x) ^ std::hash<float>{}(p.y) ^ std::hash<float>{}(p.z);
+        }
+    };
 };
 
 class Clustering {
     std::vector<ClusterPoint> points;
     std::vector<std::optional<unsigned>> clusters;
+    unsigned max_cluster_id;
 
-    std::vector<ClusterPoint> range_query(ClusterPoint q, unsigned eps);
+    std::vector<ClusterPoint> range_query(ClusterPoint q, float eps);
 
 public:
     Clustering() {}
@@ -47,7 +60,9 @@ public:
 
     std::vector<std::optional<unsigned>> get_clusters();
 
-    Clustering* cluster_dbscan(unsigned min_pts, unsigned eps);
+    unsigned get_max_cluster_id();
+
+    Clustering* cluster_dbscan(unsigned min_pts, float eps);
 };
 
 class DBSCANLabel {
@@ -60,11 +75,13 @@ public:
 
     void set_noise() {
         this->undefined = false;
+        this->cluster = 0;
         this->noise = true;
     }
 
     void set_cluster(unsigned cluster) {
         this->undefined = false;
+        this->noise = false;
         this->cluster = cluster;
     }
 

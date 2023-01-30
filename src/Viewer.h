@@ -2,6 +2,7 @@
 #pragma once
 //=============================================================================
 
+#include <optional>
 #include <pmp/visualization/MeshViewer.h>
 #include <utilities/PointSet.h>
 #include <vector>
@@ -58,8 +59,8 @@ public:
     void draw_line(vec3 center, vec3 direction, double radius, double length, Color color);
 
     static PointSet pointset_;
-
-    static std::vector<unsigned int> clusters_;
+    std::vector<std::optional<unsigned>> clusters_;
+    unsigned int max_cluster_id_;
 
 protected:
     /// this function handles keyboard events
@@ -74,10 +75,6 @@ private:
 
     // draw the pointset?
     bool draw_pointset_;
-
-    // std::vector<unsigned int> clusters_;
-
-    unsigned int max_cluster_id_;
 };
 
 //=============================================================================

@@ -18,10 +18,10 @@ Ransac::Ransac(unsigned int cluster, double eps, int minPts)
     this->minPts = minPts;
 }
 
-std::vector<unsigned int> Ransac::run(int iterations)
+std::vector<unsigned int> Ransac::run(std::vector<std::optional<unsigned>> clusters, int iterations)
 {
     std::vector<unsigned int> best_cs;
-    std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
+    std::vector<Point> points = Clusters::get_points_from_cluster(clusters, cluster);
 
     for (int i = 0; i < iterations; i++)
     {
@@ -39,7 +39,7 @@ std::vector<unsigned int> Ransac::run(int iterations)
         for (int i = 0; i < all_points.size(); i++)
         {
             // If point is in cluster
-            if (Viewer::clusters_[i] == cluster)
+            if (clusters[i].has_value() && clusters[i].value() == cluster)
             {
                 Point p = all_points[i];
                 // Point np;

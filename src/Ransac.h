@@ -2,6 +2,7 @@
 
 #include "pmp/MatVec.h"
 
+#include <optional>
 #include <random>
 #include <vector>
 
@@ -14,7 +15,7 @@ public:
     Ransac(unsigned int cluster, double eps, int minPts);
 
     // run the RANSAC algorithm
-    std::vector<unsigned int> run(int iterations);
+    std::vector<unsigned int> run(std::vector<std::optional<unsigned>> clusters, int iterations);
 
     // calculate a sensible number of iterations for given parameters
     static int calculate_iterations(double p, int s, double eps);

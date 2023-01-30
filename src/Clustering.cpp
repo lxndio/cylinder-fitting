@@ -1,9 +1,11 @@
 #include "Clustering.h"
 #include "pmp/MatVec.h"
 #include "pmp/Types.h"
+#include <cstdio>
 #include <map>
 #include <optional>
 #include <set>
+#include <unordered_set>
 #include <vector>
 
 Clustering* Clustering::set_points(std::vector<Point> points) {
@@ -20,7 +22,11 @@ std::vector<std::optional<unsigned>> Clustering::get_clusters() {
     return this->clusters;
 }
 
-std::vector<ClusterPoint> Clustering::range_query(ClusterPoint q, unsigned eps) {
+unsigned Clustering::get_max_cluster_id() {
+    return this->max_cluster_id;
+}
+
+std::vector<ClusterPoint> Clustering::range_query(ClusterPoint q, float eps) {
     std::vector<ClusterPoint> neighbors;
 
     for (ClusterPoint p : this->points) {
@@ -32,9 +38,9 @@ std::vector<ClusterPoint> Clustering::range_query(ClusterPoint q, unsigned eps) 
     return neighbors;
 }
 
-Clustering* Clustering::cluster_dbscan(unsigned min_pts, unsigned eps) {
+Clustering* Clustering::cluster_dbscan(unsigned min_pts, float eps) {
     unsigned cluster_cnt = 0;
-    std::map<ClusterPoint, DBSCANLabel> labels;
+    std::map<ClusterPoint, DBSCANLabel, ClusterPoint::Compare> labels;
 
     for (ClusterPoint p : this->points) {
         labels[p] = DBSCANLabel();
@@ -53,17 +59,31 @@ Clustering* Clustering::cluster_dbscan(unsigned min_pts, unsigned eps) {
         cluster_cnt++;
         labels[p].set_cluster(cluster_cnt);
 
-        std::set<ClusterPoint> s(neighbors.begin(), neighbors.end());
+        neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), p), neighbors.end());
+
+        // Keep points in neighbors also in a set for faster checking
+        // if a point already exists in neighbors
+        std::unordered_set<ClusterPoint, ClusterPoint::HashFunction> s(neighbors.begin(), neighbors.end());
         s.erase(p);
         
-        for (ClusterPoint q : neighbors) {
+        // Couldn't just iterate over s because when inserting new elements
+        // the iterator doesn't work correctly anymore
+        for (unsigned i = 0; i < neighbors.size(); i++) {
+            ClusterPoint q = neighbors[i];
+
             if (labels[q].is_noise()) labels[q].set_cluster(cluster_cnt);
             if (!labels[q].is_undefined()) continue;
-
             labels[q].set_cluster(cluster_cnt);
+
             std::vector<ClusterPoint> inner_neighbors = this->range_query(q, eps);
 
             if (inner_neighbors.size() >= min_pts) {
+                for (ClusterPoint in_p : inner_neighbors) {
+                    if (s.find(in_p) == s.end()) {
+                        neighbors.push_back(in_p);
+                    }
+                }
+
                 s.insert(inner_neighbors.begin(), inner_neighbors.end());
             }
         }
@@ -80,6 +100,8 @@ Clustering* Clustering::cluster_dbscan(unsigned min_pts, unsigned eps) {
             this->clusters[i] = {};
         }
     }
+
+    this->max_cluster_id = cluster_cnt - 1;
 
     return this;
 }

@@ -52,7 +52,6 @@ const std::string point_dir = "../data/pointsets/";
 
 std::vector<std::string> pointsets;
 PointSet Viewer::pointset_;
-std::vector<unsigned int> Viewer::clusters_;
 
 const Color colors[] = {
     Color(255.0, 0.0, 0.0),    // red
@@ -210,22 +209,19 @@ void Viewer::process_imgui() {
     if (ImGui::Button("DBSCAN Clustering")) {
       Clustering clustering = Clustering();
 
-      std::vector<std::optional<unsigned>> clusters = clustering
+      clusters_ = clustering
         .set_points(this->pointset_.points_)
         ->cluster_dbscan(min_pts, eps)
         ->get_clusters();
 
-      this->clusters_ = std::vector<unsigned>(this->pointset_.points_.size());
-
-      for (unsigned c = 0; c < clusters.size(); c++) {
-        // TODO fix that clusters_ also accepts optionals
-        this->clusters_[c] = clusters[c].value_or(999);
-      }
-
-      this->max_cluster_id_ = clusters.size() - 1;
+      this->max_cluster_id_ = clustering.get_max_cluster_id();
       
       for (int i = 0; i < pointset_.points_.size(); i++) {
-        pointset_.colors_[i] = colors[clusters_[i] % colors->size()];
+        if (this->clusters_[i].has_value()) {
+          this->pointset_.colors_[i] = colors[this->clusters_[i].value() % colors->size()];
+        } else {
+          this->pointset_.colors_[i] = Color(0.0, 0.0, 0.0);
+        }
       }
 
       pointset_.update_opengl();
@@ -251,7 +247,7 @@ void Viewer::process_imgui() {
 
       for (int cluster = 0; cluster <= old_max_cluster_id; cluster++) {
         std::cout << "Running cluster sweep for cluster " << cluster << std::endl;
-        std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
+        std::vector<Point> points = Clusters::get_points_from_cluster(this->clusters_, cluster);
         std::vector<std::vector<Point>> clustered_points =
             ClusterSweep::cluster(points, directions[cluster], 20);
 
@@ -323,7 +319,7 @@ void Viewer::process_imgui() {
 void Viewer::fit_cylinders() {
   for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
     // Collect points from cluster
-    std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
+    std::vector<Point> points = Clusters::get_points_from_cluster(this->clusters_, cluster);
 
     // Fit cylinder
     auto cf = CylinderFitting(points);
@@ -359,7 +355,7 @@ void Viewer::fit_cylinders() {
 void Viewer::fit_cylinders_pca() {
   for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
     // Collect points from cluster
-    std::vector<Point> points = Clusters::get_points_from_cluster(cluster);
+    std::vector<Point> points = Clusters::get_points_from_cluster(this->clusters_, cluster);
     int size = static_cast<int>(points.size());
 
     // Convert Point to Eigen::Vector3d
