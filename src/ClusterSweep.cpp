@@ -1,8 +1,10 @@
 #include "ClusterSweep.h"
+#include "Clustering.h"
 #include "ygor-clustering/YgorClustering.hpp"
 #include "ygor-clustering/YgorClusteringDBSCAN.hpp"
 #include "ygor-clustering/YgorClusteringDatum.hpp"
 
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -10,7 +12,8 @@ using namespace pmp;
 
 namespace ClusterSweep {
 std::vector<std::vector<Point>> cluster(std::vector<Point> &data,
-                                        vec3 direction, unsigned precision) {
+                                        vec3 direction, unsigned precision,
+                                        unsigned min_pts, float eps) {
     std::vector<std::vector<Point>> clustered_points;
     std::vector<std::vector<Point>> last_added_points;
     std::vector<std::pair<Point, double>> point_heights;
@@ -38,10 +41,13 @@ std::vector<std::vector<Point>> cluster(std::vector<Point> &data,
         std::vector<Point> points = get_points_in_height_range(
             point_heights, height, height - step_height);
 
-        int max_cluster_id;
-        std::vector<unsigned> clusters =
-            cluster_dbscan(points, 2.0, 6, max_cluster_id);
-        // std::cout << "clusters found: " << max_cluster_id << std::endl;
+        Clustering clustering;
+        std::vector<std::optional<unsigned>> clusters =
+            clustering.set_points(points)
+                ->cluster_dbscan(min_pts, eps)
+                ->get_clusters();
+
+        int max_cluster_id = clustering.get_max_cluster_id();
 
         for (int cluster = 0; cluster <= max_cluster_id; cluster++) {
             // Collect points from cluster
@@ -106,57 +112,14 @@ get_points_in_height_range(std::vector<std::pair<Point, double>> &point_heights,
     return res;
 }
 
-std::vector<unsigned> cluster_dbscan(std::vector<Point> points, float eps,
-                                     unsigned min_pts, int &max_cluster_id) {
-    typedef ClusteringDatum<3, double, 1, int> CDat_t;
-
-    constexpr size_t MaxElementsInANode = 6;
-    typedef boost::geometry::index::rstar<MaxElementsInANode> RTreeParameter_t;
-    typedef boost::geometry::index::rtree<CDat_t, RTreeParameter_t> RTree_t;
-    typedef boost::geometry::model::box<CDat_t> Box_t;
-
-    RTree_t rtree;
-
-    for (int i = 0; i < points.size(); i++) {
-        Point p = points[i];
-
-        rtree.insert(CDat_t({p[0], p[1], p[2]}, {i}));
-    }
-
-    DBSCAN<RTree_t, CDat_t>(rtree, eps, min_pts);
-
-    constexpr auto RTreeSpatialQueryGetAll = [](const CDat_t &) -> bool {
-        return true;
-    };
-    RTree_t::const_query_iterator it;
-    it = rtree.qbegin(
-        boost::geometry::index::satisfies(RTreeSpatialQueryGetAll));
-
-    std::vector<unsigned int> clusters(points.size());
-
-    max_cluster_id = 0;
-
-    for (; it != rtree.qend(); ++it) {
-        int cluster_id = it->CID.Raw;
-        int point_id = it->Attributes[0];
-
-        clusters[point_id] = cluster_id;
-
-        if (cluster_id > max_cluster_id) {
-            max_cluster_id = cluster_id;
-        }
-    }
-
-    return clusters;
-}
-
-std::vector<Point> get_points_from_cluster(std::vector<Point> points,
-                                           std::vector<unsigned> clusters,
-                                           unsigned cluster) {
+std::vector<Point>
+get_points_from_cluster(std::vector<Point> points,
+                        std::vector<std::optional<unsigned>> clusters,
+                        unsigned cluster) {
     std::vector<Point> res;
 
     for (int i = 0; i < points.size(); i++) {
-        if (clusters[i] == cluster) {
+        if (clusters[i].has_value() && clusters[i].value() == cluster) {
             res.push_back(points[i]);
         }
     }

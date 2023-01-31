@@ -200,6 +200,8 @@ void Viewer::process_imgui() {
         }
 
         ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
 
         // if (ImGui::Button("Fit cylinders") && max_cluster_id_ < 50) {
         //   fit_cylinders();
@@ -213,6 +215,24 @@ void Viewer::process_imgui() {
             calculate_angles();
         }
 
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        static float cs_eps = 5.0;
+
+        ImGui::Text("DBSCAN Epsilon");
+        ImGui::SliderFloat("##DBSCAN Epsilon", &cs_eps, 1.0, 10.0);
+
+        ImGui::Spacing();
+
+        static int cs_min_pts = 6;
+
+        ImGui::Text("DBSCAN MinPts");
+        ImGui::SliderInt("##DBSCAN MinPts", &cs_min_pts, 1, 20);
+
+        ImGui::Spacing();
+
         if (ImGui::Button("Cluster Sweep") && max_cluster_id_ < 50) {
             this->pointset_.only_data_points();
 
@@ -224,7 +244,8 @@ void Viewer::process_imgui() {
                 std::vector<Point> points =
                     Clusters::get_points_from_cluster(this->clusters_, cluster);
                 std::vector<std::vector<Point>> clustered_points =
-                    ClusterSweep::cluster(points, directions[cluster], 20);
+                    ClusterSweep::cluster(points, directions[cluster], 20,
+                                          cs_min_pts, cs_eps);
 
                 // Apply new clusters only if cluster sweep detected more than
                 // one cluster
