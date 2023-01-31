@@ -11,7 +11,7 @@ using namespace pmp;
 
 class ClusterPoint {
 
-public:
+  public:
     float x;
     float y;
     float z;
@@ -22,26 +22,28 @@ public:
         this->z = p[2];
     }
 
-    Point to_point() {
-        return Point(this->x, this->y, this->z);
-    }
+    Point to_point() { return Point(this->x, this->y, this->z); }
 
-    bool operator==(const ClusterPoint& p) const {
+    bool operator==(const ClusterPoint &p) const {
         return this->x == p.x && this->y == p.y && this->z == p.z;
     }
 
     struct Compare {
-        bool operator()(const ClusterPoint& lhs, const ClusterPoint& rhs) const {
-            if (lhs.x != rhs.x) return lhs.x < rhs.x;
-            if (lhs.y != rhs.y) return lhs.y < rhs.y;
+        bool operator()(const ClusterPoint &lhs,
+                        const ClusterPoint &rhs) const {
+            if (lhs.x != rhs.x)
+                return lhs.x < rhs.x;
+            if (lhs.y != rhs.y)
+                return lhs.y < rhs.y;
             return lhs.z < rhs.z;
         }
     };
 
     struct HashFunction {
         // https://ianyepan.github.io/posts/cpp-custom-hash/
-        size_t operator()(const ClusterPoint& p) const {
-            return std::hash<float>{}(p.x) ^ std::hash<float>{}(p.y) ^ std::hash<float>{}(p.z);
+        size_t operator()(const ClusterPoint &p) const {
+            return std::hash<float>{}(p.x) ^ std::hash<float>{}(p.y) ^
+                   std::hash<float>{}(p.z);
         }
     };
 };
@@ -53,16 +55,16 @@ class Clustering {
 
     std::vector<ClusterPoint> range_query(ClusterPoint q, float eps);
 
-public:
+  public:
     Clustering() {}
 
-    Clustering* set_points(std::vector<Point> points);
+    Clustering *set_points(std::vector<Point> points);
 
     std::vector<std::optional<unsigned>> get_clusters();
 
     unsigned get_max_cluster_id();
 
-    Clustering* cluster_dbscan(unsigned min_pts, float eps);
+    Clustering *cluster_dbscan(unsigned min_pts, float eps);
 };
 
 class DBSCANLabel {
@@ -70,7 +72,7 @@ class DBSCANLabel {
     bool noise = false;
     unsigned cluster = 0;
 
-public:
+  public:
     DBSCANLabel() {}
 
     void set_noise() {
@@ -85,15 +87,9 @@ public:
         this->cluster = cluster;
     }
 
-    bool is_undefined() {
-        return this->undefined;
-    }
+    bool is_undefined() { return this->undefined; }
 
-    bool is_noise() {
-        return this->noise;
-    }
+    bool is_noise() { return this->noise; }
 
-    unsigned get_cluster() {
-        return this->cluster;
-    }
+    unsigned get_cluster() { return this->cluster; }
 };
