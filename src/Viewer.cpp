@@ -48,20 +48,19 @@ namespace fs = std::filesystem;
 #endif
 #endif
 
-// const std::string point_dir = POINTSET_DIRECTORY;
 const std::string point_dir = "../data/pointsets/";
 
 std::vector<std::string> pointsets;
 PointSet Viewer::pointset_;
 
 const Color colors[] = {
-    Color(255.0, 0.0, 0.0),    // red
+    Color(255.0, 0.0, 0.0),   // red
     Color(255.0, 69.0, 0.0),  // orange
-    Color(148.0, 0.0, 211.0),  // violet
-    Color(0.0, 255.0, 0.0),    // green
-    Color(0.0, 139.0, 139.0),  // cyan
-    Color(0.0, 0.0, 255.0),    // blue
-    Color(139.0, 69.0, 19.0),  // brown
+    Color(148.0, 0.0, 211.0), // violet
+    Color(0.0, 255.0, 0.0),   // green
+    Color(0.0, 139.0, 139.0), // cyan
+    Color(0.0, 0.0, 255.0),   // blue
+    Color(139.0, 69.0, 19.0), // brown
 };
 
 const char colors_short[] = {'r', 'o', 'v', 'g', 'c', 'b', 'n'};
@@ -149,10 +148,10 @@ void Viewer::keyboard(int key, int scancode, int action, int mods) {
 void Viewer::process_imgui() {
   if (ImGui::CollapsingHeader("Cylinder Fitting",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
-    static std::string current_pointset = "- load pointset -";
+    static std::string current_pointset = "- load point set -";
     static std::string current_mesh = "- load mesh -";
 
-    ImGui::Text("Point Cloud");
+    ImGui::Text("Point Set");
     ImGui::Indent(10);
 
     ImGui::PushItemWidth(150);
@@ -194,40 +193,10 @@ void Viewer::process_imgui() {
 
     ImGui::Spacing();
 
-    // if (ImGui::Button("DBSCAN Clustering")) {
-    //   clusters_ = pointset_.cluster_dbscan(eps, min_pts, max_cluster_id_);
-    //   std::cout << "Max cluster ID: " << max_cluster_id_ << '\n';
-    //   std::cout << "Points: " << pointset_.points_.size()
-    //             << ", Clusters: " << clusters_.size() << '\n';
-
-    //   for (int i = 0; i < pointset_.vertices_size(); i++) {
-    //     pointset_.colors_[i] = colors[clusters_[i] % colors->size()];
-    //   }
-
-    //   pointset_.update_opengl();
-    // }
-
     if (ImGui::Button("DBSCAN Clustering")) {
       this->pointset_.only_data_points();
-      
-      Clustering clustering = Clustering();
 
-      clusters_ = clustering
-        .set_points(this->pointset_.points_)
-        ->cluster_dbscan(min_pts, eps)
-        ->get_clusters();
-
-      this->max_cluster_id_ = clustering.get_max_cluster_id();
-      
-      for (int i = 0; i < pointset_.points_.size(); i++) {
-        if (this->clusters_[i].has_value()) {
-          this->pointset_.colors_[i] = colors[this->clusters_[i].value() % 7];
-        } else {
-          this->pointset_.colors_[i] = Color(0.0, 0.0, 0.0);
-        }
-      }
-
-      pointset_.update_opengl();
+      dbscan_clustering(min_pts, eps);
     }
 
     ImGui::Spacing();
@@ -250,8 +219,10 @@ void Viewer::process_imgui() {
       unsigned int old_max_cluster_id = max_cluster_id_;
 
       for (int cluster = 0; cluster <= old_max_cluster_id; cluster++) {
-        std::cout << "Running cluster sweep for cluster " << cluster << std::endl;
-        std::vector<Point> points = Clusters::get_points_from_cluster(this->clusters_, cluster);
+        std::cout << "Running cluster sweep for cluster " << cluster
+                  << std::endl;
+        std::vector<Point> points =
+            Clusters::get_points_from_cluster(this->clusters_, cluster);
         std::vector<std::vector<Point>> clustered_points =
             ClusterSweep::cluster(points, directions[cluster], 20);
 
@@ -264,7 +235,8 @@ void Viewer::process_imgui() {
             // TODO can setting points to 0 cause issues if there
             // are points that aren't clustered again by cluster sweep
             // and therefore remain in cluster 0 after this?
-            if (this->clusters_[i] == cluster) this->clusters_[i] = 0;
+            if (this->clusters_[i] == cluster)
+              this->clusters_[i] = 0;
           }
 
           for (int c = 0; c < clustered_points.size(); c++) {
@@ -279,10 +251,11 @@ void Viewer::process_imgui() {
             for (Point point : clustered_points[c]) {
               unsigned i = std::find(pointset_.points_.begin(),
                                      pointset_.points_.end(), point) -
-                                     pointset_.points_.begin();
-              
+                           pointset_.points_.begin();
+
               this->clusters_[i] = new_cluster_id;
-              this->pointset_.colors_[i] = colors[new_cluster_id % colors->size()];
+              this->pointset_.colors_[i] =
+                  colors[new_cluster_id % colors->size()];
             }
           }
         }
@@ -320,10 +293,33 @@ void Viewer::process_imgui() {
 
 //-----------------------------------------------------------------------------
 
+void Viewer::dbscan_clustering(unsigned min_pts, float eps) {
+  Clustering clustering = Clustering();
+
+      clusters_ = clustering.set_points(this->pointset_.points_)
+                      ->cluster_dbscan(min_pts, eps)
+                      ->get_clusters();
+
+      this->max_cluster_id_ = clustering.get_max_cluster_id();
+
+      for (int i = 0; i < pointset_.points_.size(); i++) {
+        if (this->clusters_[i].has_value()) {
+          this->pointset_.colors_[i] = colors[this->clusters_[i].value() % 7];
+        } else {
+          this->pointset_.colors_[i] = Color(0.0, 0.0, 0.0);
+        }
+      }
+
+      pointset_.update_opengl();
+}
+
+//-----------------------------------------------------------------------------
+
 void Viewer::fit_cylinders() {
   for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
     // Collect points from cluster
-    std::vector<Point> points = Clusters::get_points_from_cluster(this->clusters_, cluster);
+    std::vector<Point> points =
+        Clusters::get_points_from_cluster(this->clusters_, cluster);
 
     // Fit cylinder
     auto cf = CylinderFitting(points);
@@ -359,10 +355,12 @@ void Viewer::fit_cylinders() {
 void Viewer::fit_cylinders_pca() {
   for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
     // Collect points from cluster
-    std::vector<Point> points = Clusters::get_points_from_cluster(this->clusters_, cluster);
+    std::vector<Point> points =
+        Clusters::get_points_from_cluster(this->clusters_, cluster);
     int size = static_cast<int>(points.size());
 
-    if (points.size() == 0) continue;
+    if (points.size() == 0)
+      continue;
 
     // Convert Point to Eigen::Vector3d
     std::vector<Eigen::VectorXd> points_eigen;

@@ -31,50 +31,53 @@ using namespace pmp;
 //== CLASS DEFINITION =========================================================
 
 /// 3D Viewer of all mesh and point cloud processing functions.
-class Viewer : public pmp::MeshViewer
-{
+class Viewer : public pmp::MeshViewer {
 public:
-    /// constructor
-    Viewer(const char* title, int width, int height);
+  /// constructor
+  Viewer(const char *title, int width, int height);
 
-    /// load points from file \p filename
-    bool load_data(const char* _filename);
+  /// load points from file \p filename
+  bool load_data(const char *_filename);
 
-    /// draw the scene in different draw modes
-    virtual void draw(const std::string& draw_mode) override;
+  /// draw the scene in different draw modes
+  virtual void draw(const std::string &draw_mode) override;
 
-    /// fit cylinders
-    void fit_cylinders();
-    
-    /// fit cylinders using PCA
-    void fit_cylinders_pca();
+  /// run DBSCAN clustering
+  void dbscan_clustering(unsigned min_pts, float eps);
 
-    /// get points from a specific cluster
-    std::vector<Point> get_points_from_cluster(int cluster);
+  /// fit cylinders
+  void fit_cylinders();
 
-    /// calculate pairwise angles between cylinders
-    void calculate_angles();
+  /// fit cylinders using PCA
+  void fit_cylinders_pca();
 
-    /// draw line
-    void draw_line(vec3 center, vec3 direction, double radius, double length, Color color);
+  /// get points from a specific cluster
+  std::vector<Point> get_points_from_cluster(int cluster);
 
-    static PointSet pointset_;
-    std::vector<std::optional<unsigned>> clusters_;
-    unsigned int max_cluster_id_;
+  /// calculate pairwise angles between cylinders
+  void calculate_angles();
+
+  /// draw line
+  void draw_line(vec3 center, vec3 direction, double radius, double length,
+                 Color color);
+
+  static PointSet pointset_;
+  std::vector<std::optional<unsigned>> clusters_;
+  unsigned int max_cluster_id_;
 
 protected:
-    /// this function handles keyboard events
-    void keyboard(int key, int code, int action, int mod) override;
+  /// this function handles keyboard events
+  void keyboard(int key, int code, int action, int mod) override;
 
-    /// draw the scene in different draw modes
-    virtual void process_imgui() override;
+  /// draw the scene in different draw modes
+  virtual void process_imgui() override;
 
 private:
-    // the loaded point set
-    // PointSet pointset_;
+  // the loaded point set
+  // PointSet pointset_;
 
-    // draw the pointset?
-    bool draw_pointset_;
+  // draw the pointset?
+  bool draw_pointset_;
 };
 
 //=============================================================================
