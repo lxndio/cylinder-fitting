@@ -216,20 +216,30 @@ void Viewer::process_imgui() {
         }
 
         ImGui::Spacing();
+
+        if (ImGui::Button("<-")) {}
+
+        ImGui::SameLine();
+        ImGui::Text("0");
+        ImGui::SameLine();
+
+        if (ImGui::Button("->")) {}
+
+        ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
         static float cs_eps = 5.0;
 
         ImGui::Text("DBSCAN Epsilon");
-        ImGui::SliderFloat("##DBSCAN Epsilon", &cs_eps, 1.0, 10.0);
+        ImGui::SliderFloat("##CS DBSCAN Epsilon", &cs_eps, 1.0, 10.0);
 
         ImGui::Spacing();
 
         static int cs_min_pts = 6;
 
         ImGui::Text("DBSCAN MinPts");
-        ImGui::SliderInt("##DBSCAN MinPts", &cs_min_pts, 1, 20);
+        ImGui::SliderInt("##CS DBSCAN MinPts", &cs_min_pts, 1, 20);
 
         ImGui::Spacing();
 
@@ -244,7 +254,7 @@ void Viewer::process_imgui() {
                 std::vector<Point> points =
                     Clusters::get_points_from_cluster(this->clusters_, cluster);
                 std::vector<std::vector<Point>> clustered_points =
-                    ClusterSweep::cluster(points, directions[cluster], 20,
+                    ClusterSweep::cluster(points, directions[cluster], 5,
                                           cs_min_pts, cs_eps);
 
                 // Apply new clusters only if cluster sweep detected more than
@@ -292,26 +302,41 @@ void Viewer::process_imgui() {
         ImGui::Spacing();
 
         ImGui::Text("Angles:");
-        for (int i = 0; i < 6; i++) {
-            char other_colors[5];
-            int pos = 0;
 
-            for (int c = 0; c < 6; c++) {
-                if (colors_short[c] != colors_short[i]) {
-                    other_colors[pos++] = colors_short[c];
-                }
+        if (ImGui::BeginTable("angletable", 7)) {
+            for (int c = 0; c < 7; c++) {
+                ImGui::TableSetupColumn("color");
+            }
+            ImGui::TableHeadersRow();
+
+            for (int i = 0; i < 7; i++) {
+                ImGui::TableNextColumn();
+                // ImGui::Text();
             }
 
-            ImGui::Text(
-                "%s",
-                fmt::format("{0}-{1}: {6:.3}° {0}-{2}: {7:.3}° {0}-{3}: "
-                            "{8:.3}° {0}-{4}: {9:.3}° {0}-{5}: {10:.3}°",
-                            colors_short[i], other_colors[0], other_colors[1],
-                            other_colors[2], other_colors[3], other_colors[4],
-                            angles[i][0], angles[i][1], angles[i][2],
-                            angles[i][3], angles[i][4])
-                    .c_str());
+            ImGui::EndTable();
         }
+
+        // for (int i = 0; i < 6; i++) {
+        //     char other_colors[5];
+        //     int pos = 0;
+
+        //     for (int c = 0; c < 6; c++) {
+        //         if (colors_short[c] != colors_short[i]) {
+        //             other_colors[pos++] = colors_short[c];
+        //         }
+        //     }
+
+        //     ImGui::Text(
+        //         "%s",
+        //         fmt::format("{0}-{1}: {6:.3}° {0}-{2}: {7:.3}° {0}-{3}: "
+        //                     "{8:.3}° {0}-{4}: {9:.3}° {0}-{5}: {10:.3}°",
+        //                     colors_short[i], other_colors[0], other_colors[1],
+        //                     other_colors[2], other_colors[3], other_colors[4],
+        //                     angles[i][0], angles[i][1], angles[i][2],
+        //                     angles[i][3], angles[i][4])
+        //             .c_str());
+        // }
     }
 }
 
