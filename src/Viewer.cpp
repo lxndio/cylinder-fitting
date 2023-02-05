@@ -7,6 +7,7 @@
 #include "CylinderFitting.h"
 #include "Ransac.h"
 #include "fmt/format.h"
+#include "imgui_internal.h"
 #include "pca.h"
 #include "pmp/MatVec.h"
 #include "pmp/Types.h"
@@ -63,13 +64,19 @@ const Color colors[] = {
     Color(139.0, 69.0, 19.0), // brown
 };
 
+const std::string color_names[] = {
+    "red", "orange", "violet", "green", "cyan", "blue", "brown",
+};
+
 const char colors_short[] = {'r', 'o', 'v', 'g', 'c', 'b', 'n'};
+
+const unsigned colors_qty = 7;
 
 // Directions of cylinders
 std::vector<vec3> directions;
 
 // Pairwise angles between cylinders
-std::vector<std::vector<double>> angles(6, std::vector<double>(5));
+std::vector<std::vector<double>> angles(7, std::vector<double>(7));
 
 //=============================================================================
 
@@ -131,7 +138,10 @@ void Viewer::keyboard(int key, int scancode, int action, int mods) {
     {
         clusters_.clear();
         directions.clear();
-        angles = std::vector(6, std::vector<double>(5));
+
+        for (int i = 0; i < 7; i++) {
+            angles[i] = std::vector<double>(7);
+        }
 
         load_data(filename_.c_str());
         break;
@@ -215,15 +225,15 @@ void Viewer::process_imgui() {
             calculate_angles();
         }
 
-        ImGui::Spacing();
+        // ImGui::Spacing();
 
-        if (ImGui::Button("<-")) {}
+        // if (ImGui::Button("<-")) {}
 
-        ImGui::SameLine();
-        ImGui::Text("0");
-        ImGui::SameLine();
+        // ImGui::SameLine();
+        // ImGui::Text("0");
+        // ImGui::SameLine();
 
-        if (ImGui::Button("->")) {}
+        // if (ImGui::Button("->")) {}
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -238,8 +248,15 @@ void Viewer::process_imgui() {
 
         static int cs_min_pts = 6;
 
-        ImGui::Text("DBSCAN MinPts");
+        ImGui::Text("CS DBSCAN MinPts");
         ImGui::SliderInt("##CS DBSCAN MinPts", &cs_min_pts, 1, 20);
+
+        ImGui::Spacing();
+
+        static int cs_precision = 5;
+
+        ImGui::Text("CS Precision");
+        ImGui::SliderInt("##CS Precision", &cs_precision, 1, 40);
 
         ImGui::Spacing();
 
@@ -254,7 +271,7 @@ void Viewer::process_imgui() {
                 std::vector<Point> points =
                     Clusters::get_points_from_cluster(this->clusters_, cluster);
                 std::vector<std::vector<Point>> clustered_points =
-                    ClusterSweep::cluster(points, directions[cluster], 5,
+                    ClusterSweep::cluster(points, directions[cluster], cs_precision,
                                           cs_min_pts, cs_eps);
 
                 // Apply new clusters only if cluster sweep detected more than
@@ -288,7 +305,7 @@ void Viewer::process_imgui() {
 
                             this->clusters_[i] = new_cluster_id;
                             this->pointset_.colors_[i] =
-                                colors[new_cluster_id % colors->size()];
+                                colors[new_cluster_id % colors_qty];
                         }
                     }
                 }
@@ -303,15 +320,32 @@ void Viewer::process_imgui() {
 
         ImGui::Text("Angles:");
 
-        if (ImGui::BeginTable("angletable", 7)) {
-            for (int c = 0; c < 7; c++) {
-                ImGui::TableSetupColumn("color");
+        if (ImGui::BeginTable("angletable", 8)) {
+            ImGui::TableSetupColumn("");
+
+            for (std::string color : color_names) {
+                ImGui::TableSetupColumn(color.c_str());
             }
+
             ImGui::TableHeadersRow();
 
-            for (int i = 0; i < 7; i++) {
+            for (int c0 = 0; c0 < colors_qty; c0++) {
                 ImGui::TableNextColumn();
-                // ImGui::Text();
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, ImColor(220, 220, 220));
+                ImGui::Text("%s", color_names[c0].c_str());
+                ImGui::TableNextColumn();
+
+                for (int c1 = 0; c1 < colors_qty; c1++) {
+                    if (c0 == c1) {
+                        ImGui::TableNextColumn();
+                        continue;
+                    }
+
+                    ImGui::Text("%s", fmt::format("{0:.3}", angles[c0][c1]).c_str());
+                    ImGui::TableNextColumn();
+                }
+
+                ImGui::TableNextRow();
             }
 
             ImGui::EndTable();
@@ -353,7 +387,7 @@ void Viewer::dbscan_clustering(unsigned min_pts, float eps) {
 
     for (int i = 0; i < pointset_.points_.size(); i++) {
         if (this->clusters_[i].has_value()) {
-            this->pointset_.colors_[i] = colors[this->clusters_[i].value() % 7];
+            this->pointset_.colors_[i] = colors[this->clusters_[i].value() % colors_qty];
         } else {
             this->pointset_.colors_[i] = Color(0.0, 0.0, 0.0);
         }
@@ -402,6 +436,8 @@ void Viewer::fit_cylinders() {
 //-----------------------------------------------------------------------------
 
 void Viewer::fit_cylinders_pca() {
+    directions.clear();
+
     for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
         // Collect points from cluster
         std::vector<Point> points =
@@ -444,15 +480,15 @@ void Viewer::fit_cylinders_pca() {
 
 void Viewer::calculate_angles() {
     // For now it only goes up to six as no more cylinders are colored
-    for (int i = 0; i < 6; i++) {
-        int angle_j = 0;
-
-        for (int j = 0; j < 6; j++) {
-            if (i != j) {
-                angles[i][angle_j++] =
+    for (int i = 0; i < 7; i++) {
+        for (int j = 0; j < 7; j++) {
+            if (i != j && i < directions.size() && j < directions.size()) {
+                angles[i][j] =
                     acos(dot(directions[i], directions[j]) /
                          (norm(directions[i]) * norm(directions[j]))) *
                     (360.0 / (2.0 * M_PI));
+            } else {
+                angles[i][j] = 0.0;
             }
         }
     }
