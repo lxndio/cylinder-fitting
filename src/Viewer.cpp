@@ -328,6 +328,7 @@ void Viewer::process_imgui() {
             }
 
             ImGui::TableHeadersRow();
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImColor(220, 220, 220));
 
             for (int c0 = 0; c0 < colors_qty; c0++) {
                 ImGui::TableNextColumn();
@@ -350,27 +351,6 @@ void Viewer::process_imgui() {
 
             ImGui::EndTable();
         }
-
-        // for (int i = 0; i < 6; i++) {
-        //     char other_colors[5];
-        //     int pos = 0;
-
-        //     for (int c = 0; c < 6; c++) {
-        //         if (colors_short[c] != colors_short[i]) {
-        //             other_colors[pos++] = colors_short[c];
-        //         }
-        //     }
-
-        //     ImGui::Text(
-        //         "%s",
-        //         fmt::format("{0}-{1}: {6:.3}° {0}-{2}: {7:.3}° {0}-{3}: "
-        //                     "{8:.3}° {0}-{4}: {9:.3}° {0}-{5}: {10:.3}°",
-        //                     colors_short[i], other_colors[0], other_colors[1],
-        //                     other_colors[2], other_colors[3], other_colors[4],
-        //                     angles[i][0], angles[i][1], angles[i][2],
-        //                     angles[i][3], angles[i][4])
-        //             .c_str());
-        // }
     }
 }
 
