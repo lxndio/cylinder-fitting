@@ -40,7 +40,7 @@ std::vector<std::vector<Point>> cluster(std::vector<Point> &data,
     for (double height = top; height >= bottom; height -= 0.75 * step_height) {
         std::vector<Point> points = get_points_in_height_range(
             point_heights, height, height - step_height);
-
+    
         Clustering clustering;
         std::vector<std::optional<unsigned>> clusters =
             clustering.set_points(points)
