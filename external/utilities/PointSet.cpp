@@ -31,7 +31,6 @@ using namespace pmp;
 
 //=============================================================================
 
-
 // helper function from PMP
 template <typename T>
 void tfread(FILE* in, const T& t)
@@ -51,7 +50,6 @@ void tfwrite(FILE* out, const T& t)
 
 //-----------------------------------------------------------------------------
 
-
 PointSet::PointSet()
     :SurfaceMeshGL()
 {
@@ -61,6 +59,23 @@ PointSet::PointSet()
 
 //-----------------------------------------------------------------------------
 
+PointSet::PointSet(const PointSet& rhs) {
+    this->points_ = rhs.points_;
+    this->normals_ = rhs.normals_;
+    this->colors_ = rhs.colors_;
+
+    this->clusters_ = rhs.clusters_;
+    this->max_cluster_id_ = rhs.max_cluster_id_;
+
+    this->data_ = rhs.data_;
+
+    this->orig_points_ = rhs.orig_points_;
+    this->orig_normals_ = rhs.orig_normals_;
+
+    this->has_colors_ = rhs.has_colors_;
+}
+
+//-----------------------------------------------------------------------------
 
 bool PointSet::read_data(const char *_filename)
 {

@@ -16,6 +16,7 @@
 
 // system includes
 #include <vector>
+#include <optional>
 
 
 //==============================================================================
@@ -28,9 +29,11 @@
 class PointSet : public pmp::SurfaceMeshGL
 {
 public:
-
     /// constructor
     PointSet();
+
+    /// clone object
+    PointSet(const PointSet& rhs);
 
     /// encapsulates read functions
     bool read_data(const char* _filename);
@@ -63,8 +66,8 @@ public:
     bool write_pts(const char* filename) const;
 
     void only_data_points();
-private:
 
+private:
     /// Read a point set with normals from a .xyz file.
     bool read_xyz(const char* filename);
 
@@ -84,10 +87,18 @@ private:
     bool read_csv(const char* filename);
 
 public:
-
     std::vector<pmp::Point>  points_;
     std::vector<pmp::Normal> normals_;
     std::vector<pmp::Color>  colors_;
+
+    std::vector<std::optional<unsigned>> clusters_;
+    unsigned int max_cluster_id_;
+
+    // Store clusters after initial clustering as well to allow for
+    // executing ClusterSweep m,ultiple times with different parameters
+    std::vector<std::optional<unsigned>> orig_clusters_;
+    unsigned int orig_max_cluster_id_;
+    std::vector<pmp::Color> orig_colors_;
 
     /// Determines if corresponding point is from data or only in the PointSet
     /// to be drawn for visualization

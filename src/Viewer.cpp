@@ -136,7 +136,7 @@ void Viewer::keyboard(int key, int scancode, int action, int mods) {
     switch (key) {
     case GLFW_KEY_BACKSPACE: // reload model
     {
-        clusters_.clear();
+        pointset_.clusters_.clear();
         directions.clear();
 
         for (int i = 0; i < 7; i++) {
@@ -156,6 +156,9 @@ void Viewer::keyboard(int key, int scancode, int action, int mods) {
 //-----------------------------------------------------------------------------
 
 void Viewer::process_imgui() {
+    changed_dbscan = false;
+    changed_cs = false;
+
     if (ImGui::CollapsingHeader("Cylinder Fitting",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
         static std::string current_pointset = "- load point set -";
@@ -189,25 +192,24 @@ void Viewer::process_imgui() {
         ImGui::Separator();
         ImGui::Spacing();
 
-        static float eps = 5.0;
-
         ImGui::Text("DBSCAN Epsilon");
-        ImGui::SliderFloat("##DBSCAN Epsilon", &eps, 1.0, 10.0);
+        changed_dbscan = ImGui::SliderFloat("##DBSCAN Epsilon", &eps, 1.0, 10.0) || changed_dbscan;
 
         ImGui::Spacing();
-
-        static int min_pts = 6;
 
         ImGui::Text("DBSCAN MinPts");
-        ImGui::SliderInt("##DBSCAN MinPts", &min_pts, 1, 20);
+        changed_dbscan = ImGui::SliderInt("##DBSCAN MinPts", &min_pts, 1, 20) || changed_dbscan;
 
         ImGui::Spacing();
 
-        if (ImGui::Button("DBSCAN Clustering")) {
+        if (ImGui::Button("DBSCAN Clustering") || (interactive_dbscan && changed_dbscan)) {
             this->pointset_.only_data_points();
 
             dbscan_clustering(min_pts, eps);
         }
+
+        ImGui::SameLine();
+        ImGui::Checkbox("Interactive##DBSCAN", &interactive_dbscan);
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -218,7 +220,7 @@ void Viewer::process_imgui() {
         //   calculate_angles();
         // }
 
-        if (ImGui::Button("Fit w/ PCA") && max_cluster_id_ < 50) {
+        if (ImGui::Button("Fit w/ PCA") && pointset_.max_cluster_id_ < 50) {
             this->pointset_.only_data_points();
 
             fit_cylinders_pca();
@@ -239,80 +241,27 @@ void Viewer::process_imgui() {
         ImGui::Separator();
         ImGui::Spacing();
 
-        static float cs_eps = 5.0;
-
         ImGui::Text("DBSCAN Epsilon");
-        ImGui::SliderFloat("##CS DBSCAN Epsilon", &cs_eps, 1.0, 10.0);
+        changed_cs = ImGui::SliderFloat("##CS DBSCAN Epsilon", &cs_eps, 1.0, 10.0) || changed_cs;
 
         ImGui::Spacing();
-
-        static int cs_min_pts = 6;
 
         ImGui::Text("CS DBSCAN MinPts");
-        ImGui::SliderInt("##CS DBSCAN MinPts", &cs_min_pts, 1, 20);
+        changed_cs = ImGui::SliderInt("##CS DBSCAN MinPts", &cs_min_pts, 1, 20) || changed_cs;
 
         ImGui::Spacing();
-
-        static int cs_precision = 5;
 
         ImGui::Text("CS Precision");
-        ImGui::SliderInt("##CS Precision", &cs_precision, 1, 40);
+        changed_cs = ImGui::SliderInt("##CS Precision", &cs_precision, 1, 40) || changed_cs;
 
         ImGui::Spacing();
 
-        if (ImGui::Button("Cluster Sweep") && max_cluster_id_ < 50) {
-            this->pointset_.only_data_points();
-
-            unsigned int old_max_cluster_id = max_cluster_id_;
-
-            for (int cluster = 0; cluster <= old_max_cluster_id; cluster++) {
-                std::cout << "Running cluster sweep for cluster " << cluster
-                          << std::endl;
-                std::vector<Point> points =
-                    Clusters::get_points_from_cluster(this->clusters_, cluster);
-                std::vector<std::vector<Point>> clustered_points =
-                    ClusterSweep::cluster(points, directions[cluster], cs_precision,
-                                          cs_min_pts, cs_eps);
-
-                // Apply new clusters only if cluster sweep detected more than
-                // one cluster
-                if (clustered_points.size() >= 2) {
-                    // First detected cluster will take the place of the
-                    // original cluster of the points on which cluster sweep was
-                    // run
-                    for (int i = 0; i < this->clusters_.size(); i++) {
-                        // TODO can setting points to 0 cause issues if there
-                        // are points that aren't clustered again by cluster
-                        // sweep and therefore remain in cluster 0 after this?
-                        if (this->clusters_[i] == cluster)
-                            this->clusters_[i] = 0;
-                    }
-
-                    for (int c = 0; c < clustered_points.size(); c++) {
-                        int new_cluster_id;
-
-                        if (c == 0) {
-                            new_cluster_id = cluster;
-                        } else {
-                            new_cluster_id = ++this->max_cluster_id_;
-                        }
-
-                        for (Point point : clustered_points[c]) {
-                            unsigned i =
-                                std::find(pointset_.points_.begin(),
-                                          pointset_.points_.end(), point) -
-                                pointset_.points_.begin();
-
-                            this->clusters_[i] = new_cluster_id;
-                            this->pointset_.colors_[i] =
-                                colors[new_cluster_id % colors_qty];
-                        }
-                    }
-                }
-            }
-
-            pointset_.update_opengl();
+        if (ImGui::Button("Cluster Sweep") || (interactive_cs && changed_cs)) {
+            if (pointset_.max_cluster_id_ < 50) this->cluster_sweep();
         }
+
+        ImGui::SameLine();
+        ImGui::Checkbox("Interactive##ClusterSweep", &interactive_cs);
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -359,19 +308,23 @@ void Viewer::process_imgui() {
 void Viewer::dbscan_clustering(unsigned min_pts, float eps) {
     Clustering clustering = Clustering();
 
-    clusters_ = clustering.set_points(this->pointset_.points_)
+    pointset_.clusters_ = clustering.set_points(this->pointset_.points_)
                     ->cluster_dbscan(min_pts, eps)
                     ->get_clusters();
 
-    this->max_cluster_id_ = clustering.get_max_cluster_id();
+    this->pointset_.max_cluster_id_ = clustering.get_max_cluster_id();
 
     for (int i = 0; i < pointset_.points_.size(); i++) {
-        if (this->clusters_[i].has_value()) {
-            this->pointset_.colors_[i] = colors[this->clusters_[i].value() % colors_qty];
+        if (this->pointset_.clusters_[i].has_value()) {
+            this->pointset_.colors_[i] = colors[this->pointset_.clusters_[i].value() % colors_qty];
         } else {
             this->pointset_.colors_[i] = Color(0.0, 0.0, 0.0);
         }
     }
+
+    pointset_.orig_clusters_ = pointset_.clusters_;
+    pointset_.orig_max_cluster_id_ = pointset_.max_cluster_id_;
+    pointset_.orig_colors_ = pointset_.colors_;
 
     pointset_.update_opengl();
 }
@@ -379,10 +332,10 @@ void Viewer::dbscan_clustering(unsigned min_pts, float eps) {
 //-----------------------------------------------------------------------------
 
 void Viewer::fit_cylinders() {
-    for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
+    for (int cluster = 0; cluster <= pointset_.max_cluster_id_; cluster++) {
         // Collect points from cluster
         std::vector<Point> points =
-            Clusters::get_points_from_cluster(this->clusters_, cluster);
+            Clusters::get_points_from_cluster(this->pointset_.clusters_, cluster);
 
         // Fit cylinder
         auto cf = CylinderFitting(points);
@@ -418,10 +371,10 @@ void Viewer::fit_cylinders() {
 void Viewer::fit_cylinders_pca() {
     directions.clear();
 
-    for (int cluster = 0; cluster <= max_cluster_id_; cluster++) {
+    for (int cluster = 0; cluster <= pointset_.max_cluster_id_; cluster++) {
         // Collect points from cluster
         std::vector<Point> points =
-            Clusters::get_points_from_cluster(this->clusters_, cluster);
+            Clusters::get_points_from_cluster(this->pointset_.clusters_, cluster);
         int size = static_cast<int>(points.size());
 
         if (points.size() == 0)
@@ -454,6 +407,67 @@ void Viewer::fit_cylinders_pca() {
         // Draw cylinder
         draw_line(center, eigenvec, 2.0, 100.0, Color(50.0, 50.0, 50.0));
     }
+}
+
+//-----------------------------------------------------------------------------
+
+void Viewer::cluster_sweep() {
+    if (directions.empty()) return;
+
+    this->pointset_.only_data_points();
+    this->pointset_.clusters_ = this->pointset_.orig_clusters_;
+    this->pointset_.max_cluster_id_ = this->pointset_.orig_max_cluster_id_;
+    this->pointset_.colors_ = this->pointset_.orig_colors_;
+
+    unsigned int old_max_cluster_id = pointset_.max_cluster_id_;
+
+    for (int cluster = 0; cluster <= old_max_cluster_id; cluster++) {
+        std::cout << "Running cluster sweep for cluster " << cluster
+                    << std::endl;
+        std::vector<Point> points =
+            Clusters::get_points_from_cluster(this->pointset_.clusters_, cluster);
+        std::vector<std::vector<Point>> clustered_points =
+            ClusterSweep::cluster(points, directions[cluster], cs_precision,
+                                    cs_min_pts, cs_eps);
+
+        // Apply new clusters only if cluster sweep detected more than
+        // one cluster
+        if (clustered_points.size() >= 2) {
+            // First detected cluster will take the place of the
+            // original cluster of the points on which cluster sweep was
+            // run
+            for (int i = 0; i < this->pointset_.clusters_.size(); i++) {
+                // TODO can setting points to 0 cause issues if there
+                // are points that aren't clustered again by cluster
+                // sweep and therefore remain in cluster 0 after this?
+                if (this->pointset_.clusters_[i] == cluster)
+                    this->pointset_.clusters_[i] = 0;
+            }
+
+            for (int c = 0; c < clustered_points.size(); c++) {
+                int new_cluster_id;
+
+                if (c == 0) {
+                    new_cluster_id = cluster;
+                } else {
+                    new_cluster_id = ++this->pointset_.max_cluster_id_;
+                }
+
+                for (Point point : clustered_points[c]) {
+                    unsigned i =
+                        std::find(pointset_.points_.begin(),
+                                    pointset_.points_.end(), point) -
+                        pointset_.points_.begin();
+
+                    this->pointset_.clusters_[i] = new_cluster_id;
+                    this->pointset_.colors_[i] =
+                        colors[new_cluster_id % colors_qty];
+                }
+            }
+        }
+    }
+
+    pointset_.update_opengl();
 }
 
 //-----------------------------------------------------------------------------

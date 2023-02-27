@@ -51,6 +51,9 @@ class Viewer : public pmp::MeshViewer {
     /// fit cylinders using PCA
     void fit_cylinders_pca();
 
+    /// prepare and run cluster sweep
+    void cluster_sweep();
+
     /// get points from a specific cluster
     std::vector<Point> get_points_from_cluster(int cluster);
 
@@ -62,8 +65,7 @@ class Viewer : public pmp::MeshViewer {
                    Color color);
 
     static PointSet pointset_;
-    std::vector<std::optional<unsigned>> clusters_;
-    unsigned int max_cluster_id_;
+    static PointSet pointset_before_cs_;
 
   protected:
     /// this function handles keyboard events
@@ -78,6 +80,18 @@ class Viewer : public pmp::MeshViewer {
 
     // draw the pointset?
     bool draw_pointset_;
+
+    // UI state
+    bool interactive_dbscan = false;
+    bool changed_dbscan = false;
+    float eps = 5.0;
+    int min_pts = 6;
+
+    bool interactive_cs = false;
+    bool changed_cs = false;
+    float cs_eps = 5.0;
+    int cs_min_pts = 6;
+    int cs_precision = 5;
 };
 
 //=============================================================================
