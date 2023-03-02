@@ -6,7 +6,9 @@
 #include "Clusters.h"
 #include "CylinderFitting.h"
 #include "Ransac.h"
+#include "fmt/core.h"
 #include "fmt/format.h"
+#include "fmt/chrono.h"
 #include "imgui_internal.h"
 #include "pca.h"
 #include "pmp/MatVec.h"
@@ -21,13 +23,12 @@
 #include <fstream>
 #include <imgui.h>
 #include <iterator>
-// #include <opencv2/core.hpp>
-// #include <opencv2/core/hal/interface.h>
 #include <filesystem>
 #include <limits>
 #include <string>
 #include <vector>
-// #include <opencv2/opencv.hpp>
+#include <chrono>
+#include <ctime>
 
 namespace fs = std::filesystem;
 
@@ -317,25 +318,17 @@ void Viewer::process_imgui() {
 
             ImGui::EndTable();
         }
+        
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
 
-        // if (ImGui::Button("print clusters")) {
-        //     std::ofstream file;
-        //     file.open("clustered.csv");
-
-        //     file << "x_coord,y_coord,z_coord,voxel_size,cluster" << std::endl;
-
-        //     for (int cluster = 0; cluster <= pointset_.max_cluster_id_; cluster++) {
-        //         // Collect points from cluster
-        //         std::vector<Point> points =
-        //             Clusters::get_points_from_cluster(this->pointset_.clusters_, cluster);
-                
-        //         for (Point p : points) {
-        //             file << p[0] << "," << p[1] << "," << p[2] << ",1.0," << cluster << std::endl;
-        //         }
-        //     }
-
-        //     file.close();
-        // }
+        ImGui::Text("Export");
+        if (ImGui::Button("Clusters")) this->save(0);
+        ImGui::SameLine();
+        if (ImGui::Button("Angles")) this->save(1);
+        ImGui::SameLine();
+        ImGui::Text(exported ? "OK" : "");
     }
 }
 
@@ -504,6 +497,62 @@ void Viewer::cluster_sweep() {
     }
 
     pointset_.update_opengl();
+}
+
+//-----------------------------------------------------------------------------
+
+void Viewer::save(unsigned type) {
+    if (type > 1) return;
+
+    auto now = std::chrono::system_clock::now();
+    std::string filename = fmt::format("export_{0:%F}_{0:%H}-{0:%M}-{0:%S}.csv", now);
+
+    std::ofstream file;
+    file.open(filename);
+
+    switch (type) {
+        // Export clusters
+        case 0:
+            file << "x_coord,y_coord,z_coord,cluster" << std::endl;
+
+            for (int cluster = 0; cluster <= pointset_.max_cluster_id_; cluster++) {
+                // Collect points from cluster
+                std::vector<Point> points =
+                    Clusters::get_points_from_cluster(this->pointset_.clusters_, cluster);
+
+                for (Point p : points) {
+                    file << p[0] << "," << p[1] << "," << p[2] << "," << cluster << std::endl;
+                }
+            }
+
+            this->exported = true;
+            break;
+
+        // Export angles
+        case 1:
+            file << ",0,1,2,3,4,5,6" << std::endl;
+
+            for (int c0 = 0; c0 < colors_qty; c0++) {
+                file << c0 << ",";
+
+                for (int c1 = 0; c1 < colors_qty; c1++) {
+                    if (c0 == c1) {
+                        file << ",";
+                        continue;
+                    }
+
+                    file << fmt::format("{0:.3}", angles[c0][c1]);
+                    if (c1 != colors_qty - 1) file << ",";
+                }
+
+                file << std::endl;
+            }
+            
+            this->exported = true;
+            break;
+    }
+
+    file.close();
 }
 
 //-----------------------------------------------------------------------------

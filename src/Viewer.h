@@ -54,6 +54,9 @@ class Viewer : public pmp::MeshViewer {
     /// prepare and run cluster sweep
     void cluster_sweep();
 
+    /// export data to file
+    void save(unsigned type);
+
     /// get points from a specific cluster
     std::vector<Point> get_points_from_cluster(int cluster);
 
@@ -94,6 +97,8 @@ class Viewer : public pmp::MeshViewer {
     int cs_precision = 5;
 
     unsigned cs_cluster_current = 0;
+
+    bool exported = false;
 };
 
 //=============================================================================
