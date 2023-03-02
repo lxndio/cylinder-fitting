@@ -92,6 +92,8 @@ class Viewer : public pmp::MeshViewer {
     float cs_eps = 5.0;
     int cs_min_pts = 6;
     int cs_precision = 5;
+
+    unsigned cs_cluster_current = 0;
 };
 
 //=============================================================================

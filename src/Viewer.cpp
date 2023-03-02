@@ -17,6 +17,7 @@
 #include <cassert>
 #include <cfloat>
 #include <cmath>
+#include <cstdio>
 #include <fstream>
 #include <imgui.h>
 #include <iterator>
@@ -227,21 +228,37 @@ void Viewer::process_imgui() {
             calculate_angles();
         }
 
-        // ImGui::Spacing();
-
-        // if (ImGui::Button("<-")) {}
-
-        // ImGui::SameLine();
-        // ImGui::Text("0");
-        // ImGui::SameLine();
-
-        // if (ImGui::Button("->")) {}
-
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
-        ImGui::Text("DBSCAN Epsilon");
+        // ImGui::Text("CS Clusters");
+
+        // std::vector<std::string> cs_cluster_items;
+        // cs_cluster_items.push_back("all");
+        
+        // for (int i = 0; pointset_.max_cluster_id_ > 0 && i <= pointset_.max_cluster_id_; i++) {
+        //     if (i < 7) cs_cluster_items.push_back(color_names[i].c_str());
+        //     else cs_cluster_items.push_back("no color (" + std::to_string(i) + ")");
+        // }
+
+        // if (ImGui::BeginCombo("##CS Cluster", cs_cluster_items[cs_cluster_current].c_str())) {
+        //     for (int i = 0; i < cs_cluster_items.size(); i++) {
+        //         bool is_selected = (i == cs_cluster_current);
+
+        //         if (ImGui::Selectable(cs_cluster_items[i].c_str(), is_selected)) {
+        //             cs_cluster_current = i;
+        //         }
+
+        //         if (is_selected) {
+        //             ImGui::SetItemDefaultFocus();
+        //         }
+        //     }
+
+        //     ImGui::EndCombo();
+        // }
+
+        ImGui::Text("CS DBSCAN Epsilon");
         changed_cs = ImGui::SliderFloat("##CS DBSCAN Epsilon", &cs_eps, 1.0, 10.0) || changed_cs;
 
         ImGui::Spacing();
@@ -300,6 +317,25 @@ void Viewer::process_imgui() {
 
             ImGui::EndTable();
         }
+
+        // if (ImGui::Button("print clusters")) {
+        //     std::ofstream file;
+        //     file.open("clustered.csv");
+
+        //     file << "x_coord,y_coord,z_coord,voxel_size,cluster" << std::endl;
+
+        //     for (int cluster = 0; cluster <= pointset_.max_cluster_id_; cluster++) {
+        //         // Collect points from cluster
+        //         std::vector<Point> points =
+        //             Clusters::get_points_from_cluster(this->pointset_.clusters_, cluster);
+                
+        //         for (Point p : points) {
+        //             file << p[0] << "," << p[1] << "," << p[2] << ",1.0," << cluster << std::endl;
+        //         }
+        //     }
+
+        //     file.close();
+        // }
     }
 }
 
