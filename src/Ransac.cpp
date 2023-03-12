@@ -10,18 +10,15 @@
 
 using namespace pmp;
 
-Ransac::Ransac(unsigned int cluster, double eps, int minPts)
+Ransac::Ransac(double eps, int minPts)
 {
-    this->all_points = Viewer::pointset_.points_;
-    this->cluster = cluster;
     this->eps = eps;
     this->minPts = minPts;
 }
 
-std::vector<unsigned int> Ransac::run(std::vector<std::optional<unsigned>> clusters, int iterations)
+std::vector<vec3> Ransac::run(std::vector<vec3> points, int iterations)
 {
-    std::vector<unsigned int> best_cs;
-    std::vector<Point> points = Clusters::get_points_from_cluster(clusters, cluster);
+    std::vector<vec3> best_cs;
 
     for (int i = 0; i < iterations; i++)
     {
@@ -30,24 +27,15 @@ std::vector<unsigned int> Ransac::run(std::vector<std::optional<unsigned>> clust
         vec3 p2 = *choose_rand(points.begin(), points.end());
 
         // Calculate consensus set
-        // cs does not store the points but their indices
-        std::vector<unsigned int> cs;
+        std::vector<vec3> cs;
 
-        // Iterate over all points and check if point is in cluster
-        // later so we can get the global ID of the point and not
-        // just the ID in the cluster
-        for (int i = 0; i < all_points.size(); i++)
+        for (int i = 0; i < points.size(); i++)
         {
-            // If point is in cluster
-            if (clusters[i].has_value() && clusters[i].value() == cluster)
-            {
-                Point p = all_points[i];
-                // Point np;
+            Point p = points[i];
 
-                if (p != p1 && p != p2 && dist_point_line(p, p1, p2) < eps)
-                {
-                    cs.push_back(i);
-                }
+            if (dist_point_line(p, p1, p2) < eps)
+            {
+                cs.push_back(points[i]);
             }
         }
 
