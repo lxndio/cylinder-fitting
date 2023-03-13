@@ -319,6 +319,19 @@ public:
         return true;
     }
 
+    struct HashFunction {
+        size_t operator()(const Matrix<Scalar, M, N>& mat) const {
+            size_t hash;
+            size_t shift = 0;
+
+            for (auto d : mat.data_) {
+                hash = hash ^ std::hash<int>()(d) << shift++;
+            }
+
+            return hash;
+        }
+    };
+
 protected:
     std::array<Scalar, N * M> data_;
 };
