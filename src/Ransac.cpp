@@ -12,10 +12,11 @@
 
 using namespace pmp;
 
-Ransac::Ransac(std::vector<vec3> points, double eps, int minPts) {
+Ransac::Ransac(std::vector<vec3> points, double eps, int minPts, double grid_size) {
     this->points = points;
     this->eps = eps;
     this->minPts = minPts;
+    this->grid_size = grid_size;
     this->connected_components = std::vector<std::vector<vec3>>();
 }
 
@@ -53,8 +54,16 @@ std::vector<vec3> Ransac::run_on_cc(unsigned cc, int iterations) {
 
     for (int i = 0; i < iterations; i++) {
         // Randomly choose two points
-        vec3 p1 = *choose_rand(connected_component.begin(), connected_component.end());
-        vec3 p2 = *choose_rand(connected_component.begin(), connected_component.end());
+        vec3 p1;
+        vec3 p2;
+        unsigned not_found = 0;
+        
+        do {
+            p1 = *choose_rand(connected_component.begin(), connected_component.end());
+            p2 = *choose_rand(connected_component.begin(), connected_component.end());
+
+            if (distance(p1, p2) < this->eps * 2.0) not_found++;
+        } while (distance(p1, p2) < this->eps * 2.0 && not_found < 5);
 
         // Calculate consensus set
         std::vector<vec3> cs;
@@ -68,7 +77,7 @@ std::vector<vec3> Ransac::run_on_cc(unsigned cc, int iterations) {
         }
 
         // Check if it is a consensus set and if it is the best one yet
-        if (cs.size() >= minPts && cs.size() > best_cs.size()) {
+        if (cs.size() >= minPts && cs.size() > best_cs.size() && this->are_connected(cs)) {
             best_cs = cs;
         }
     }
@@ -76,7 +85,7 @@ std::vector<vec3> Ransac::run_on_cc(unsigned cc, int iterations) {
     return best_cs;
 }
 
-void Ransac::find_connected_components(double grid_size) {
+void Ransac::find_connected_components() {
     std::vector<vec3> unassigned_points = this->points;
 
     while (!unassigned_points.empty()) {
@@ -88,7 +97,7 @@ void Ransac::find_connected_components(double grid_size) {
             vec3 p = *unvisited.begin();
             unvisited.erase(unvisited.begin());
 
-            std::vector<vec3> neighbors = this->get_new_neighbors(connected_component, p, grid_size);
+            std::vector<vec3> neighbors = this->get_new_neighbors(connected_component, p, this->grid_size);
 
             connected_component.insert(connected_component.end(), neighbors.begin(), neighbors.end());
             unvisited.insert(unvisited.end(), neighbors.begin(), neighbors.end());
@@ -134,6 +143,30 @@ std::vector<vec3> Ransac::get_connected_component(vec3 p) {
     }
 
     return std::vector<vec3>();
+}
+
+bool Ransac::are_connected(std::vector<vec3> points) {
+    std::vector<vec3> unassigned_points = points;
+    std::vector<vec3> connected_component;
+    std::vector<vec3> unvisited;
+    unvisited.push_back(*choose_rand(points.begin(), points.end()));
+
+    while (!unvisited.empty()) {
+        vec3 p = *unvisited.begin();
+        unvisited.erase(unvisited.begin());
+
+        std::vector<vec3> neighbors = this->get_new_neighbors(connected_component, p, this->grid_size);
+
+        connected_component.insert(connected_component.end(), neighbors.begin(), neighbors.end());
+        unvisited.insert(unvisited.end(), neighbors.begin(), neighbors.end());
+        
+        unassigned_points.erase(remove_if(unassigned_points.begin(), unassigned_points.end(),
+            [&](auto x) {
+                return std::find(neighbors.begin(), neighbors.end(), x) != neighbors.end();
+            }), unassigned_points.end());
+    }
+
+    return unassigned_points.empty();
 }
 
 // Source: https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container

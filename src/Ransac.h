@@ -12,7 +12,7 @@ class Ransac
 {
 public:
     /// constructor
-    Ransac(std::vector<vec3> points, double eps, int minPts);
+    Ransac(std::vector<vec3> points, double eps, int minPts, double);
 
     /// run the RANSAC algorithm
     std::vector<vec3> run(int iterations);
@@ -20,9 +20,9 @@ public:
     /// run the RANSAC algorithm on a specific connected component
     std::vector<vec3> run_on_cc(unsigned cc, int iterations);
 
-    /// generate graph from points using `grid_size` and find
+    /// generate graph from points using grid size and find
     /// connected components in that graph
-    void find_connected_components(double grid_size);
+    void find_connected_components();
 
     // calculate a sensible number of iterations for given parameters
     static int calculate_iterations(double p, int s, double eps);
@@ -37,6 +37,9 @@ public:
     /// get the connected component containing a specific point
     std::vector<vec3> get_connected_component(vec3 p);
 
+    /// check if all specified points are connected
+    bool are_connected(std::vector<vec3> points);
+
     /// connected components
     std::vector<std::vector<vec3>> connected_components;
 
@@ -49,6 +52,9 @@ private:
 
     /// minimum number of points in eps range
     int minPts;
+
+    /// grid size (distance of points with uniform spacing)
+    double grid_size;
 };
 
 template<typename Iter, typename RandomGenerator>

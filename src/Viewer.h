@@ -87,7 +87,7 @@ class Viewer : public pmp::MeshViewer {
     // UI state
     bool interactive_dbscan = false;
     bool changed_dbscan = false;
-    float eps = 5.0;
+    float eps = 4.0;
     int min_pts = 6;
 
     bool interactive_cs = false;

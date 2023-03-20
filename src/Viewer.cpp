@@ -194,6 +194,11 @@ void Viewer::process_imgui() {
         ImGui::Separator();
         ImGui::Spacing();
 
+        ImGui::Text("Grass stalk radius");
+        ImGui::SliderFloat("##Grass stalk radius", &eps, 1.0, 10.0);
+
+        ImGui::Spacing();
+
         if (ImGui::Button("RANSAC")) {
             this->pointset_.only_data_points();
 
@@ -201,17 +206,19 @@ void Viewer::process_imgui() {
             this->pointset_.colors_ = std::vector<pmp::Color>(this->pointset_.points_.size());
             this->pointset_.max_cluster_id_ = 0;
 
-            Ransac ransac(this->pointset_.points_, 5.0, 10);
-            ransac.find_connected_components(1.0);
+            Ransac ransac(this->pointset_.points_, eps, 10, 2.0);
+            ransac.find_connected_components();
 
             for (int cc = 0; cc < ransac.connected_components.size(); cc++) {
                 std::vector<vec3> remaining_points = ransac.connected_components[cc];
 
-                while (!remaining_points.empty()) {
+                while (remaining_points.size() >= 2) {
+                    // TODO this cannot be run on cc but must be run on remaining_points instead
                     std::vector<pmp::Point> cs = ransac.run_on_cc(cc, 5);
 
                     if (cs.empty()) break;
 
+                    std::cout << "cs: " << cs.size() << ", remaining points before: " << remaining_points.size() << std::endl;
                     for (pmp::Point point : cs) {
                         unsigned i = std::find(this->pointset_.points_.begin(), this->pointset_.points_.end(), point) - this->pointset_.points_.begin();
 
