@@ -207,29 +207,35 @@ void Viewer::process_imgui() {
             this->pointset_.max_cluster_id_ = 0;
 
             Ransac ransac(this->pointset_.points_, eps, 10, 2.0);
-            ransac.find_connected_components();
+            ransac.connected_components = ransac.find_connected_components(this->pointset_.points_);
+
+            // for (std::vector<pmp::Point> cc : ransac.connected_components) {
+            //     for (pmp::Point point : cc) {
+            //         unsigned i = std::find(this->pointset_.points_.begin(), this->pointset_.points_.end(), point) - this->pointset_.points_.begin();
+
+            //         this->pointset_.clusters_[i] = this->pointset_.max_cluster_id_ + 1;
+            //         this->pointset_.colors_[i] = colors[this->pointset_.max_cluster_id_ % colors_qty];
+            //     }
+
+            //     this->pointset_.max_cluster_id_++;
+            // }
 
             for (int cc = 0; cc < ransac.connected_components.size(); cc++) {
-                std::vector<vec3> remaining_points = ransac.connected_components[cc];
+                // Don't process small connected components
+                if (ransac.connected_components[cc].size() < 10) continue;
 
-                while (remaining_points.size() >= 2) {
-                    // TODO this cannot be run on cc but must be run on remaining_points instead
-                    std::vector<pmp::Point> cs = ransac.run_on_cc(cc, 5);
+                std::vector<std::vector<pmp::Point>> css = ransac.run_on_cc(cc, 10);
 
-                    if (cs.empty()) break;
-
-                    std::cout << "cs: " << cs.size() << ", remaining points before: " << remaining_points.size() << std::endl;
+                for (std::vector<pmp::Point> cs : css) {
                     for (pmp::Point point : cs) {
                         unsigned i = std::find(this->pointset_.points_.begin(), this->pointset_.points_.end(), point) - this->pointset_.points_.begin();
 
                         this->pointset_.clusters_[i] = this->pointset_.max_cluster_id_ + 1;
                         this->pointset_.colors_[i] = colors[this->pointset_.max_cluster_id_ % colors_qty];
-
-                        remaining_points.erase(std::remove(remaining_points.begin(), remaining_points.end(), point), remaining_points.end());
                     }
 
                     this->pointset_.max_cluster_id_++;
-                    std::cout << "max cluster ID: " << this->pointset_.max_cluster_id_ << ", remaining points: " << remaining_points.size() << std::endl;
+                    std::cout << "max cluster ID: " << this->pointset_.max_cluster_id_ << std::endl;
                 }
             }
 
