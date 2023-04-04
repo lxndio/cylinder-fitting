@@ -38,6 +38,8 @@ std::vector<vec3> Ransac::run(std::vector<vec3> points, int iterations) {
         }
     }
 
+    std::vector<vec3> &cc = connected_components[largest_cc];
+
     std::cout << "largest cc: " << largest_cc << std::endl;
 
     for (int i = 0; i < iterations; i++) {
@@ -48,8 +50,6 @@ std::vector<vec3> Ransac::run(std::vector<vec3> points, int iterations) {
         
         do {
             // Choose points from largest connected component
-            std::vector<vec3> &cc = connected_components[largest_cc];
-
             p1 = *choose_rand(cc.begin(), cc.end());
             p2 = *choose_rand(cc.begin(), cc.end());
         } while (p1 != p2 && distance(p1, p2) < this->eps * 2.0 && ++not_found < 10);
@@ -61,16 +61,14 @@ std::vector<vec3> Ransac::run(std::vector<vec3> points, int iterations) {
         // Calculate consensus set
         std::vector<vec3> cs;
 
-        for (int i = 0; i < points.size(); i++) {
-            Point p = points[i];
-
+        for (vec3 p : cc) {
             if (dist_point_line(p, p1, p2) < eps) {
                 cs.push_back(p);
             }
         }
 
         // Check if it is a consensus set and if it is the best one yet
-        if (cs.size() >= minPts && cs.size() > best_cs.size() && this->are_connected(cs, points)) {
+        if (cs.size() >= minPts && cs.size() > best_cs.size()) {
             best_cs = cs;
         }
     }
