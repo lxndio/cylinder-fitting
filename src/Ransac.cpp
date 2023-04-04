@@ -28,10 +28,7 @@ std::vector<vec3> Ransac::run(std::vector<vec3> points, int iterations) {
     unsigned largest_cc = 0;
     unsigned largest_cc_size = 0;
 
-    std::cout << "---" << std::endl;
-    std::cout << connected_components.size() << std::endl;
     for (int i = 0; i < connected_components.size(); i++) {
-        std::cout << "cc " << i << " size: " << connected_components[i].size() << std::endl;
         if (connected_components[i].size() > largest_cc_size) {
             largest_cc = i;
             largest_cc_size = connected_components[i].size();
@@ -54,9 +51,7 @@ std::vector<vec3> Ransac::run(std::vector<vec3> points, int iterations) {
             p2 = *choose_rand(cc.begin(), cc.end());
         } while (p1 != p2 && distance(p1, p2) < this->eps * 2.0 && ++not_found < 10);
 
-        std::cout << "not found: " << not_found << std::endl;
-
-        // TODO break if not found == 5?
+        // if (not_found >= 10) break; 
 
         // Calculate consensus set
         std::vector<vec3> cs;
@@ -80,7 +75,7 @@ std::vector<std::vector<vec3>> Ransac::run_on_cc(unsigned cc, int iterations) {
     std::vector<std::vector<vec3>> clustered_points;
     std::vector<vec3> remaining_points = this->connected_components[cc];
 
-    while (remaining_points.size() >= 2) {
+    while (remaining_points.size() > 0.07 * this->connected_components[cc].size()) {
         std::vector<vec3> cs = this->run(remaining_points, iterations);
 
         if (cs.empty()) break;

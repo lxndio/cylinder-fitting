@@ -206,25 +206,14 @@ void Viewer::process_imgui() {
             this->pointset_.colors_ = std::vector<pmp::Color>(this->pointset_.points_.size());
             this->pointset_.max_cluster_id_ = 0;
 
-            Ransac ransac(this->pointset_.points_, eps, 10, 2.0);
+            Ransac ransac(this->pointset_.points_, eps, 10, 3.0);
             ransac.connected_components = ransac.find_connected_components(this->pointset_.points_);
-
-            // for (std::vector<pmp::Point> cc : ransac.connected_components) {
-            //     for (pmp::Point point : cc) {
-            //         unsigned i = std::find(this->pointset_.points_.begin(), this->pointset_.points_.end(), point) - this->pointset_.points_.begin();
-
-            //         this->pointset_.clusters_[i] = this->pointset_.max_cluster_id_ + 1;
-            //         this->pointset_.colors_[i] = colors[this->pointset_.max_cluster_id_ % colors_qty];
-            //     }
-
-            //     this->pointset_.max_cluster_id_++;
-            // }
 
             for (int cc = 0; cc < ransac.connected_components.size(); cc++) {
                 // Don't process small connected components
                 if (ransac.connected_components[cc].size() < 10) continue;
 
-                std::vector<std::vector<pmp::Point>> css = ransac.run_on_cc(cc, 10);
+                std::vector<std::vector<pmp::Point>> css = ransac.run_on_cc(cc, 50);
 
                 for (std::vector<pmp::Point> cs : css) {
                     for (pmp::Point point : cs) {
