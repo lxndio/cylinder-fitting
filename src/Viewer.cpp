@@ -214,6 +214,10 @@ void Viewer::process_imgui() {
                 if (ransac.connected_components[cc].size() < 10) continue;
 
                 std::vector<std::vector<pmp::Point>> css = ransac.run_on_cc(cc, 50);
+                
+                if (css.size() > 1) {
+                    css = ransac.forward_search(css, 50);
+                }
 
                 for (std::vector<pmp::Point> cs : css) {
                     for (pmp::Point point : cs) {

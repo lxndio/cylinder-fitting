@@ -8,7 +8,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(Ransac_test Ransac_test.cpp)
-target_link_libraries(Ransac_test GTest::gtest_main)
+target_link_libraries(Ransac_test PRIVATE GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(Ransac_test)

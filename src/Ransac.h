@@ -20,6 +20,10 @@ public:
     /// run the RANSAC algorithm on a specific connected component
     std::vector<std::vector<vec3>> run_on_cc(unsigned cc, int iterations);
 
+    /// run forward search on RANSAC points to optimize solution
+    /// with maximum number of `iterations`
+    std::vector<std::vector<vec3>> forward_search(std::vector<std::vector<vec3>> points, int iterations);
+
     /// generate graph from points using grid size and find
     /// connected components in that graph
     std::vector<std::vector<vec3>> find_connected_components(std::vector<vec3> &include);
@@ -32,6 +36,8 @@ public:
 
     /// calculate distance of point from line
     static double dist_point_line(vec3 p, vec3 l1, vec3 l2);
+
+    static double dist_point_line_direction(vec3 p, vec3 l1, vec3 d);
 
     /// get all points neighboring a point `p` in a specific radius `eps`
     /// that are contained in `include` but not in `exclude`

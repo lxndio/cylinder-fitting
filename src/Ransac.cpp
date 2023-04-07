@@ -1,10 +1,15 @@
 #include "Ransac.h"
+#include "Eigen/src/Core/Matrix.h"
+#include "pca.h"
 #include "pmp/MatVec.h"
 #include "pmp/algorithms/DistancePointTriangle.h"
 #include "Clusters.h"
 #include "Viewer.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
+#include <tuple>
 #include <unordered_set>
 #include <vector>
 #include <random>
@@ -90,6 +95,89 @@ std::vector<std::vector<vec3>> Ransac::run_on_cc(unsigned cc, int iterations) {
     return clustered_points;
 }
 
+std::vector<std::vector<vec3>> Ransac::forward_search(std::vector<std::vector<vec3>> clusters, int iterations) {
+    unsigned nclusters = clusters.size();
+    std::vector<vec3> old_centers(nclusters);
+    std::vector<std::tuple<vec3, vec3>> axes;
+
+    for (int it = 0; it < iterations; it++) {
+        std::cout << "iterations: " << it << std::endl;
+        old_centers = std::vector<vec3>(nclusters);
+        
+        for (int a = 0; a < axes.size(); a++) {
+            old_centers.push_back(std::get<0>(axes[a]));
+        }
+
+        // Compute axis for each cluster (defined by (center, direction))
+        axes = std::vector<std::tuple<vec3, vec3>>();
+
+        for (std::vector<vec3> cluster : clusters) {
+            // Convert points to Eigen::Vector3d
+            std::vector<Eigen::VectorXd> points_eigen;
+
+            for (int i = 0; i < cluster.size(); i++) {
+                points_eigen.push_back(Eigen::Vector3d{cluster[i][0], cluster[i][1], cluster[i][2]});
+            }
+
+            // Find axis using PCA
+            PCA pca;
+            
+            if (pca.train(points_eigen, 1)) {
+                Eigen::Vector3d center_eigen = pca.mean();
+                Eigen::Vector3d eigenvec_eigen = pca.eigenvectors().col(0);
+                
+                vec3 center(center_eigen[0], center_eigen[1], center_eigen[2]);
+                vec3 eigenvec(eigenvec_eigen[0], eigenvec_eigen[1], eigenvec_eigen[2]);
+
+                axes.push_back(std::make_tuple(center, eigenvec));
+            }
+        }
+
+        // TODO
+        if (axes.size() < nclusters) break;
+
+        // Check if centers don't change anymore
+        bool changed = false;
+
+        for (int a = 0; a < nclusters; a++) {
+            if (distance(std::get<0>(axes[a]), old_centers[a]) > 0.5) {
+                changed = true;
+                break;
+            }
+        }
+
+        if (!changed) break;
+
+        // Get all points without cluster information
+        std::vector<vec3> points;
+
+        for (std::vector<vec3> cluster : clusters) {
+            points.insert(points.end(), cluster.begin(), cluster.end());
+        }
+
+        // Assign each point to closest axis' clusters
+        clusters = std::vector<std::vector<vec3>>(nclusters);
+
+        for (vec3 point : points) {
+            double lowest_dev = std::numeric_limits<double>::infinity();
+            unsigned closest_axis = 0;
+
+            for (int a = 0; a < nclusters; a++) {
+                double dev = dist_point_line_direction(point, std::get<0>(axes[a]), std::get<1>(axes[a]));
+
+                if (dev < lowest_dev) {
+                    lowest_dev = dev;
+                    closest_axis = a;
+                }
+            }
+            
+            clusters[closest_axis].push_back(point);
+        }
+    }
+
+    return clusters;
+}
+
 std::vector<std::vector<vec3>> Ransac::find_connected_components(std::vector<vec3> &include) {
     std::vector<std::vector<vec3>> connected_components;
     std::vector<vec3> unassigned_points = include;
@@ -133,6 +221,10 @@ int Ransac::calculate_iterations(double p, int s, double eps) {
 double Ransac::dist_point_line(vec3 p, vec3 l1, vec3 l2) {
     vec3 d = l2 - l1;
     
+    return norm(cross(p - l1, d)) / norm(d);
+}
+
+double Ransac::dist_point_line_direction(vec3 p, vec3 l1, vec3 d) {
     return norm(cross(p - l1, d)) / norm(d);
 }
 
