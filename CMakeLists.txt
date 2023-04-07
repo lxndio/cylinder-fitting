@@ -193,6 +193,7 @@ include(AddFileDependencies)
 include_directories(${PROJECT_SOURCE_DIR}/src/)
 add_subdirectory(src)
 
-
+enable_testing()
+add_subdirectory(tests)
 
 ##############################################################################
