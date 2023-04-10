@@ -105,7 +105,7 @@ std::vector<std::vector<vec3>> Ransac::forward_search(std::vector<std::vector<ve
         old_centers = std::vector<vec3>(nclusters);
         
         for (int a = 0; a < axes.size(); a++) {
-            old_centers.push_back(std::get<0>(axes[a]));
+            old_centers[a] = std::get<0>(axes[a]);
         }
 
         // Compute axis for each cluster (defined by (center, direction))
@@ -140,7 +140,7 @@ std::vector<std::vector<vec3>> Ransac::forward_search(std::vector<std::vector<ve
         bool changed = false;
 
         for (int a = 0; a < nclusters; a++) {
-            if (distance(std::get<0>(axes[a]), old_centers[a]) > 0.5) {
+            if (distance(std::get<0>(axes[a]), old_centers[a]) > 0.001) {
                 changed = true;
                 break;
             }

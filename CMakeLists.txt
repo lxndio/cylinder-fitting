@@ -1,4 +1,9 @@
+cmake_minimum_required(VERSION 3.14)
 project(CylinderFitting)
+
+include(FetchContent)
+
+cmake_policy(SET CMP0135 NEW)
 
 ##############################################################################
 # paths
@@ -22,7 +27,6 @@ find_package(OpenGL REQUIRED)
 # compiler flags
 ##############################################################################
 
-# we need C++11
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -109,14 +113,12 @@ set(IMGUI_SOURCE_DIR "external/imgui")
 include_directories(${IMGUI_SOURCE_DIR})
 add_subdirectory(${IMGUI_SOURCE_DIR})
 
-
 ##############################################################################
 # Eigen
 ##############################################################################
 
 set(EIGEN_SOURCE_DIR "external/eigen")
 include_directories(${EIGEN_SOURCE_DIR})
-
 
 ##############################################################################
 # pmp
@@ -133,7 +135,6 @@ add_subdirectory(external/pmp)
 set(UTILITIES_SOURCE_DIR "external/utilities")
 include_directories(${UTILITIES_SOURCE_DIR})
 add_subdirectory(${UTILITIES_SOURCE_DIR})
-
 
 ##############################################################################
 # csv-parser
@@ -155,12 +156,6 @@ if(Boost_FOUND)
 endif()
 
 ##############################################################################
-# ygor-clustering
-##############################################################################
-
-include_directories(external/ygor-clustering)
-
-##############################################################################
 # msc
 ##############################################################################
 
@@ -171,13 +166,6 @@ include_directories(external/msc)
 ##############################################################################
 
 add_subdirectory(external/fmt)
-
-##############################################################################
-# OpenCV
-##############################################################################
-
-find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
 
 ##############################################################################
 # source code directories

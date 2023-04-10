@@ -1,14 +1,16 @@
-include(FetchContent)
+file(GLOB TESTS "./*.cpp")
+
 FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG v3.3.2
 )
-# For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+FetchContent_MakeAvailable(Catch2)
 
-add_executable(Ransac_test Ransac_test.cpp)
-target_link_libraries(Ransac_test PRIVATE GTest::gtest_main)
+add_executable(Ransac_test ${TESTS})
+target_link_libraries(Ransac_test PRIVATE Catch2::Catch2WithMain ransac_lib)
 
-include(GoogleTest)
-gtest_discover_tests(Ransac_test)
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+include(CTest)
+include(Catch)
+catch_discover_tests(Ransac_test)
