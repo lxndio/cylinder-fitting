@@ -194,33 +194,50 @@ void Viewer::process_imgui() {
         ImGui::Separator();
         ImGui::Spacing();
 
-        ImGui::Text("DBSCAN Epsilon");
-        changed_dbscan = ImGui::SliderFloat("##DBSCAN Epsilon", &eps, 1.0, 10.0) || changed_dbscan;
+        ImGui::Text("Grass stalk radius");
+        ImGui::SliderFloat("##Grass stalk radius", &eps, 1.0, 10.0);
 
         ImGui::Spacing();
 
-        ImGui::Text("DBSCAN MinPts");
-        changed_dbscan = ImGui::SliderInt("##DBSCAN MinPts", &min_pts, 1, 20) || changed_dbscan;
-
-        ImGui::Spacing();
-
-        if (ImGui::Button("DBSCAN Clustering") || (interactive_dbscan && changed_dbscan)) {
+        if (ImGui::Button("RANSAC")) {
             this->pointset_.only_data_points();
 
-            dbscan_clustering(min_pts, eps);
-        }
+            this->pointset_.clusters_ = std::vector<std::optional<unsigned>>(this->pointset_.points_.size());
+            this->pointset_.colors_ = std::vector<pmp::Color>(this->pointset_.points_.size());
+            this->pointset_.max_cluster_id_ = 0;
 
-        ImGui::SameLine();
-        ImGui::Checkbox("Interactive##DBSCAN", &interactive_dbscan);
+            Ransac ransac(this->pointset_.points_, eps, 10, 3.0);
+            ransac.connected_components = ransac.find_connected_components(this->pointset_.points_);
+
+            for (int cc = 0; cc < ransac.connected_components.size(); cc++) {
+                // Don't process small connected components
+                if (ransac.connected_components[cc].size() < 10) continue;
+
+                std::vector<std::vector<pmp::Point>> css = ransac.run_on_cc(cc, 50);
+                
+                if (css.size() > 1) {
+                    css = ransac.forward_search(css, 50);
+                }
+
+                for (std::vector<pmp::Point> cs : css) {
+                    for (pmp::Point point : cs) {
+                        unsigned i = std::find(this->pointset_.points_.begin(), this->pointset_.points_.end(), point) - this->pointset_.points_.begin();
+
+                        this->pointset_.clusters_[i] = this->pointset_.max_cluster_id_ + 1;
+                        this->pointset_.colors_[i] = colors[this->pointset_.max_cluster_id_ % colors_qty];
+                    }
+
+                    this->pointset_.max_cluster_id_++;
+                    std::cout << "max cluster ID: " << this->pointset_.max_cluster_id_ << std::endl;
+                }
+            }
+
+            pointset_.update_opengl();
+        }
 
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
-
-        // if (ImGui::Button("Fit cylinders") && max_cluster_id_ < 50) {
-        //   fit_cylinders();
-        //   calculate_angles();
-        // }
 
         if (ImGui::Button("Fit w/ PCA") && pointset_.max_cluster_id_ < 50) {
             this->pointset_.only_data_points();
@@ -228,58 +245,6 @@ void Viewer::process_imgui() {
             fit_cylinders_pca();
             calculate_angles();
         }
-
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
-
-        // ImGui::Text("CS Clusters");
-
-        // std::vector<std::string> cs_cluster_items;
-        // cs_cluster_items.push_back("all");
-        
-        // for (int i = 0; pointset_.max_cluster_id_ > 0 && i <= pointset_.max_cluster_id_; i++) {
-        //     if (i < 7) cs_cluster_items.push_back(color_names[i].c_str());
-        //     else cs_cluster_items.push_back("no color (" + std::to_string(i) + ")");
-        // }
-
-        // if (ImGui::BeginCombo("##CS Cluster", cs_cluster_items[cs_cluster_current].c_str())) {
-        //     for (int i = 0; i < cs_cluster_items.size(); i++) {
-        //         bool is_selected = (i == cs_cluster_current);
-
-        //         if (ImGui::Selectable(cs_cluster_items[i].c_str(), is_selected)) {
-        //             cs_cluster_current = i;
-        //         }
-
-        //         if (is_selected) {
-        //             ImGui::SetItemDefaultFocus();
-        //         }
-        //     }
-
-        //     ImGui::EndCombo();
-        // }
-
-        ImGui::Text("CS DBSCAN Epsilon");
-        changed_cs = ImGui::SliderFloat("##CS DBSCAN Epsilon", &cs_eps, 1.0, 10.0) || changed_cs;
-
-        ImGui::Spacing();
-
-        ImGui::Text("CS DBSCAN MinPts");
-        changed_cs = ImGui::SliderInt("##CS DBSCAN MinPts", &cs_min_pts, 1, 20) || changed_cs;
-
-        ImGui::Spacing();
-
-        ImGui::Text("CS Precision");
-        changed_cs = ImGui::SliderInt("##CS Precision", &cs_precision, 1, 40) || changed_cs;
-
-        ImGui::Spacing();
-
-        if (ImGui::Button("Cluster Sweep") || (interactive_cs && changed_cs)) {
-            if (pointset_.max_cluster_id_ < 50) this->cluster_sweep();
-        }
-
-        ImGui::SameLine();
-        ImGui::Checkbox("Interactive##ClusterSweep", &interactive_cs);
 
         ImGui::Spacing();
         ImGui::Separator();
