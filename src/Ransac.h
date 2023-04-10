@@ -41,7 +41,7 @@ public:
 
     /// get all points neighboring a point `p` in a specific radius `eps`
     /// that are contained in `include` but not in `exclude`
-    std::vector<vec3> get_neighbors(std::vector<vec3> &include, std::vector<vec3> &exclude, vec3 p, float eps);
+    static std::vector<vec3> get_neighbors(std::vector<vec3> &include, std::vector<vec3> &exclude, vec3 p, float eps);
 
     /// get the vector from a list of vectors containing a specific point
     std::vector<vec3> get_vec_with_point(vec3 p, std::vector<std::vector<vec3>> connected_components);

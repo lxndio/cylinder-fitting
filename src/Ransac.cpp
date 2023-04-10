@@ -191,7 +191,7 @@ std::vector<std::vector<vec3>> Ransac::find_connected_components(std::vector<vec
             vec3 p = *unvisited.begin();
             unvisited.erase(unvisited.begin());
 
-            std::vector<vec3> neighbors = this->get_neighbors(include, connected_component, p, this->grid_size);
+            std::vector<vec3> neighbors = get_neighbors(include, connected_component, p, this->grid_size);
 
             connected_component.insert(connected_component.end(), neighbors.begin(), neighbors.end());
             unvisited.insert(unvisited.end(), neighbors.begin(), neighbors.end());
@@ -260,7 +260,7 @@ bool Ransac::are_connected(std::vector<vec3> &points, std::vector<vec3> &include
         vec3 p = *unvisited.begin();
         unvisited.erase(unvisited.begin());
 
-        std::vector<vec3> neighbors = this->get_neighbors(include, connected_component, p, this->grid_size);
+        std::vector<vec3> neighbors = get_neighbors(include, connected_component, p, this->grid_size);
 
         connected_component.insert(connected_component.end(), neighbors.begin(), neighbors.end());
         unvisited.insert(unvisited.end(), neighbors.begin(), neighbors.end());
