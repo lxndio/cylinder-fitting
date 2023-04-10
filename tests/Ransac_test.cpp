@@ -1,16 +1,3 @@
-// #include <gtest/gtest.h>
-
-// // using namespace pmp;
-
-// TEST(DistPointLine, CorrectWithPoints) {
-//     // vec3 p(10.0, 10.0, 0.0);
-//     // vec3 l1(5.0, 0.0, 0.0);
-//     // vec3 l2(20.0, 0.0, 0.0);
-//     EXPECT_EQ(1, 1);
-
-//     //EXPECT_EQ(Ransac::dist_point_line(p, l1, l2), 10.0);
-// }
-
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
@@ -87,6 +74,55 @@ TEST_CASE("Find connected components (two components)", "[algorithms]") {
         Catch::Matchers::UnorderedEquals(points_in_component_1) ||
         Catch::Matchers::UnorderedEquals(points_in_component_2)
     );
+}
+
+TEST_CASE("Get neighbors of point", "[algorithms]") {
+    std::vector<vec3> include;
+    std::vector<vec3> exclude = {
+        vec3(4.5, 0.0, 0.0),
+        vec3(5.5, 0.0, 0.0)
+    };
+
+    for (double i = 0.0; i <= 10.0; i += 0.5) {
+        include.push_back(vec3(i, 0.0, 0.0));
+    }
+
+    vec3 p(5.0, 0.25, 0.0);
+    double eps = 1.0;
+
+    SECTION("No include points") {
+        std::vector<vec3> include_empty;
+
+        REQUIRE_THAT(
+            Ransac::get_neighbors(include_empty, exclude, p, eps),
+            Catch::Matchers::Equals(std::vector<vec3>())
+        );
+    }
+
+    SECTION("No exclude points") {
+        std::vector<vec3> exclude_empty;
+        std::vector<vec3> result = {
+            vec3(4.5, 0.0, 0.0),
+            vec3(5.0, 0.0, 0.0),
+            vec3(5.5, 0.0, 0.0)
+        };
+
+        REQUIRE_THAT(
+            Ransac::get_neighbors(include, exclude_empty, p, eps),
+            Catch::Matchers::Equals(result)
+        );
+    }
+
+    SECTION("Include and exclude points") {
+        std::vector<vec3> result = {
+            vec3(5.0, 0.0, 0.0)
+        };
+
+        REQUIRE_THAT(
+            Ransac::get_neighbors(include, exclude, p, eps),
+            Catch::Matchers::Equals(result)
+        );
+    }
 }
 
 TEST_CASE("Compute distance of point to line (defined by two points)", "[math]") {
