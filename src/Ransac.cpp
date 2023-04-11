@@ -76,6 +76,8 @@ std::vector<vec3> Ransac::run(std::vector<vec3> points, int iterations) {
 }
 
 std::vector<std::vector<vec3>> Ransac::run_on_cc(unsigned cc, int iterations) {
+    if (cc >= this->connected_components.size()) return std::vector<std::vector<vec3>>();
+
     std::vector<std::vector<vec3>> clustered_points;
     std::vector<vec3> remaining_points = this->connected_components[cc];
 

@@ -69,9 +69,46 @@ TEST_CASE("Run RANSAC on connected component", "[algorithms]") {
     for (double x = 0.0; x < 3.0; x += 1.0) {
         for (double y = 0.0; y < 3.0; y += 1.0) {
             for (double z = 0.0; z < 20.0; z += 1.0) {
+                // Generate points for two connected components
                 points.push_back(vec3(x, y, z));
+                points.push_back(vec3(x + 10.0, y, z));
             }
         }
+    }
+
+    ransac.connected_components = ransac.find_connected_components(points);
+
+    REQUIRE(ransac.connected_components.size() == 2);
+
+    SECTION("Selected connected component does not exist") {
+        REQUIRE_THAT(ransac.run_on_cc(2, 50), Catch::Matchers::Equals(std::vector<std::vector<vec3>>()));
+        REQUIRE_THAT(ransac.run_on_cc(10, 50), Catch::Matchers::Equals(std::vector<std::vector<vec3>>()));
+    }
+
+    SECTION("No iterations") {
+        REQUIRE_THAT(ransac.run_on_cc(0, 0), Catch::Matchers::Equals(std::vector<std::vector<vec3>>()));
+    }
+
+    SECTION("Only connected components with a single point each") {
+        std::vector<vec3> non_connected_points;
+
+        for (double x = 0.0; x < 30.0; x += 5.0) {
+            for (double y = 0.0; y < 30.0; y += 5.0) {
+                for (double z = 0.0; z < 30.0; z += 5.0) {
+                    non_connected_points.push_back(vec3(x, y, z));
+                }
+            }
+        }
+
+        Ransac ransac2(5.0, 10, 3.0);
+        ransac2.connected_components = ransac2.find_connected_components(non_connected_points);
+
+        REQUIRE(ransac2.connected_components.size() == 216);
+        REQUIRE_THAT(ransac2.run_on_cc(0, 50), Catch::Matchers::Equals(std::vector<std::vector<vec3>>()));
+    }
+
+    SECTION("Valid parameters, no other problems") {
+
     }
 
     // TODO test cases:
@@ -79,6 +116,8 @@ TEST_CASE("Run RANSAC on connected component", "[algorithms]") {
     // - 0 iterations
     // - this->connected_components is empty (equal to first case?)
     // - this->run returns empty vector
+    //   - in first iteration
+    //   - in later iteration
 }
 
 TEST_CASE("Find connected components (zero components)", "[algorithms]") {
