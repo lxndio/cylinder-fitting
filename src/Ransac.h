@@ -12,7 +12,7 @@ class Ransac
 {
 public:
     /// constructor
-    Ransac(std::vector<vec3> points, double eps, int minPts, double grid_size);
+    Ransac(double eps, int minPts, double grid_size);
 
     /// run the RANSAC algorithm
     std::vector<vec3> run(std::vector<vec3> points, int iterations);

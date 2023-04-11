@@ -1,16 +1,90 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
+#include <fakeit.hpp>
 
 #include <Ransac.h>
 #include <pmp/MatVec.h>
 #include <vector>
 
+using namespace fakeit;
 using namespace pmp;
+
+TEST_CASE("Run RANSAC", "[algorithms]") {
+    Ransac ransac(5.0, 10, 3.0);
+    std::vector<vec3> points;
+
+    for (double x = 0.0; x < 3.0; x += 1.0) {
+        for (double y = 0.0; y < 3.0; y += 1.0) {
+            for (double z = 0.0; z < 20.0; z += 1.0) {
+                points.push_back(vec3(x, y, z));
+            }
+        }
+    }
+
+    SECTION("No points") {
+        REQUIRE_THAT(
+            ransac.run(std::vector<vec3>(), 50),
+            Catch::Matchers::Equals(std::vector<vec3>())
+        );
+    }
+
+    SECTION("No iterations") {
+        REQUIRE_THAT(
+            ransac.run(points, 0),
+            Catch::Matchers::Equals(std::vector<vec3>())
+        );
+    }
+
+    SECTION("Valid parameters, all points in consensus set") {
+        REQUIRE_THAT(
+            ransac.run(points, 50),
+            Catch::Matchers::UnorderedEquals(points)
+        );
+    }
+
+    SECTION("Valid parameters, not all points in consensus set") {
+        std::vector<vec3> outliers = {
+            vec3(6.0, 6.0, 15.0),
+            vec3(10.0, 0.0, 5.0),
+            vec3(5.0, 20.0, 25.0)
+        };
+
+        std::vector<vec3> points_with_outliers = points;
+        points_with_outliers.insert(points_with_outliers.end(), outliers.begin(), outliers.end());
+
+        REQUIRE_THAT(
+            ransac.run(points_with_outliers, 50),
+            Catch::Matchers::UnorderedEquals(points)
+        );
+    }
+
+    // TODO test cases:
+    // - this->find_connected_components returns empty
+}
+
+TEST_CASE("Run RANSAC on connected component", "[algorithms]") {
+    Ransac ransac(5.0, 10, 3.0);
+    std::vector<vec3> points;
+
+    for (double x = 0.0; x < 3.0; x += 1.0) {
+        for (double y = 0.0; y < 3.0; y += 1.0) {
+            for (double z = 0.0; z < 20.0; z += 1.0) {
+                points.push_back(vec3(x, y, z));
+            }
+        }
+    }
+
+    // TODO test cases:
+    // - cc does not exist
+    // - 0 iterations
+    // - this->connected_components is empty (equal to first case?)
+    // - this->run returns empty vector
+}
 
 TEST_CASE("Find connected components (zero components)", "[algorithms]") {
     std::vector<vec3> points;
 
-    Ransac ransac(std::vector<vec3>(), 0.0, 0, 1.0);
+    Ransac ransac(0.0, 0, 1.0);
     std::vector<std::vector<vec3>> connected_components = ransac.find_connected_components(points);
 
     REQUIRE(connected_components.size() == 0);
@@ -27,7 +101,7 @@ TEST_CASE("Find connected components (one component)", "[algorithms]") {
         }
     }
 
-    Ransac ransac(std::vector<vec3>(), 0.0, 0, 1.0);
+    Ransac ransac(0.0, 0, 1.0);
     std::vector<std::vector<vec3>> connected_components = ransac.find_connected_components(points);
 
     REQUIRE(connected_components.size() == 1);
@@ -59,7 +133,7 @@ TEST_CASE("Find connected components (two components)", "[algorithms]") {
         }
     }
 
-    Ransac ransac(std::vector<vec3>(), 0.0, 0, 1.0);
+    Ransac ransac(0.0, 0, 1.0);
     std::vector<std::vector<vec3>> connected_components = ransac.find_connected_components(points);
 
     REQUIRE(connected_components.size() == 2);

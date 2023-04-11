@@ -7,6 +7,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
+include_directories(../external/fakeit)
+
 add_executable(Ransac_test ${TESTS})
 target_link_libraries(Ransac_test PRIVATE Catch2::Catch2WithMain ransac_lib)
 

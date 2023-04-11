@@ -17,8 +17,7 @@
 
 using namespace pmp;
 
-Ransac::Ransac(std::vector<vec3> points, double eps, int minPts, double grid_size) {
-    this->points = points;
+Ransac::Ransac(double eps, int minPts, double grid_size) {
     this->eps = eps;
     this->minPts = minPts;
     this->grid_size = grid_size;
@@ -26,6 +25,8 @@ Ransac::Ransac(std::vector<vec3> points, double eps, int minPts, double grid_siz
 }
 
 std::vector<vec3> Ransac::run(std::vector<vec3> points, int iterations) {
+    if (points.empty()) return std::vector<vec3>();
+
     std::vector<vec3> best_cs;
 
     // Get connected components and determine the one with the most points
@@ -41,8 +42,6 @@ std::vector<vec3> Ransac::run(std::vector<vec3> points, int iterations) {
     }
 
     std::vector<vec3> &cc = connected_components[largest_cc];
-
-    std::cout << "largest cc: " << largest_cc << std::endl;
 
     for (int i = 0; i < iterations; i++) {
         // Randomly choose two points
@@ -133,7 +132,8 @@ std::vector<std::vector<vec3>> Ransac::forward_search(std::vector<std::vector<ve
             }
         }
 
-        // TODO
+        // Break if not at least one axis was found for each cluster,
+        // shouldn't happen but can if one cluster becomes empty
         if (axes.size() < nclusters) break;
 
         // Check if centers don't change anymore
